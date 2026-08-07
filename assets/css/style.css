@@ -46,6 +46,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 img {
   display: block;
   max-width: 100%;
@@ -63,6 +68,41 @@ a {
   box-shadow: 0 0 40px rgba(31, 50, 29, 0.22);
   overflow: hidden;
   position: relative;
+}
+
+.music-toggle {
+  position: fixed;
+  right: max(16px, calc((100vw - 480px) / 2 + 16px));
+  bottom: 18px;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid rgba(255, 249, 233, 0.32);
+  border-radius: 999px;
+  padding: 9px 14px;
+  color: var(--ivory);
+  background: rgba(31, 50, 29, 0.88);
+  box-shadow: 0 10px 30px rgba(31, 50, 29, 0.28);
+  backdrop-filter: blur(8px);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.music-toggle[hidden] {
+  display: none;
+}
+
+.music-toggle-icon {
+  min-width: 14px;
+  color: #f7e8a7;
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.music-toggle.is-paused {
+  background: rgba(84, 113, 57, 0.9);
 }
 
 .cover-screen {
@@ -538,6 +578,14 @@ a {
   margin: 12px 0 5px;
 }
 
+.event-card [data-event-map] {
+  margin-top: 12px;
+}
+
+.event-card-dark [data-event-map] {
+  color: var(--leaf-950);
+}
+
 .event-section .btn-secondary {
   width: 100%;
 }
@@ -706,6 +754,25 @@ a {
 .rsvp-form textarea:focus {
   border-color: var(--gold);
   box-shadow: 0 0 0 3px rgba(200, 155, 56, 0.16);
+}
+
+.form-feedback,
+.wishes-state {
+  margin: 0;
+  font-size: 0.84rem;
+  text-align: center;
+}
+
+.form-feedback-success {
+  color: var(--leaf-700);
+}
+
+.form-feedback-error {
+  color: #a33a31;
+}
+
+.wishes-state {
+  color: rgba(255, 253, 244, 0.82);
 }
 
 .wishes-list {

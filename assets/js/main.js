@@ -1,133 +1,260 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Cover Page Logic
+document.addEventListener('DOMContentLoaded', async () => {
     const btnOpen = document.getElementById('btn-open');
     const coverPage = document.getElementById('cover-page');
-
-    // To prevent scrolling when cover is active
+    const weddingMusic = document.getElementById('wedding-music');
+    const musicToggle = document.getElementById('music-toggle');
     document.body.style.overflow = 'hidden';
 
-    if (btnOpen) {
-        btnOpen.addEventListener('click', () => {
-            if (coverPage) {
-                coverPage.classList.add('cover-slide-up');
-            }
-            document.body.style.overflow = 'auto'; // allow scroll
-        });
-    }
-
-    // 2. Scroll Animations using Intersection Observer
-    const observerOptions = {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.15
-    };
-
-    const observer = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-                observer.unobserve(entry.target); // Optional: stop observing once animated
-            }
-        });
-    }, observerOptions);
-
-    const animatedElements = document.querySelectorAll('.fade-in');
-    animatedElements.forEach(el => observer.observe(el));
-
-    // 3. Countdown Timer
-    const countdownDate = new Date("Dec 31, 2026 09:00:00").getTime();
-
-    const timer = setInterval(() => {
-        const now = new Date().getTime();
-        const distance = countdownDate - now;
-
-        if (distance < 0) {
-            clearInterval(timer);
-            document.getElementById("countdown").innerHTML = "Acara Sedang Berlangsung / Selesai";
-            return;
+    btnOpen?.addEventListener('click', async () => {
+        coverPage?.classList.add('cover-slide-up');
+        document.body.style.overflow = 'auto';
+        musicToggle.hidden = false;
+        try {
+            await weddingMusic.play();
+        } catch {
+            updateMusicButton(false);
         }
-
-        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-        if(document.getElementById("days")) {
-            document.getElementById("days").innerText = days.toString().padStart(2, '0');
-            document.getElementById("hours").innerText = hours.toString().padStart(2, '0');
-            document.getElementById("minutes").innerText = minutes.toString().padStart(2, '0');
-            document.getElementById("seconds").innerText = seconds.toString().padStart(2, '0');
-        }
-    }, 1000);
-
-    // 4. Copy to Clipboard
-    const copyBtns = document.querySelectorAll('.copy-btn');
-    copyBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const textToCopy = btn.getAttribute('data-copy');
-            copyText(textToCopy).then(() => {
-                const originalText = btn.innerText;
-                btn.innerText = 'Tersalin!';
-                btn.classList.add('copied');
-                
-                setTimeout(() => {
-                    btn.innerText = originalText;
-                    btn.classList.remove('copied');
-                }, 2000);
-            });
-        });
     });
 
-    function copyText(text) {
-        if (navigator.clipboard && window.isSecureContext) {
-            return navigator.clipboard.writeText(text);
+    musicToggle?.addEventListener('click', async () => {
+        if (weddingMusic.paused) {
+            try {
+                await weddingMusic.play();
+            } catch {
+                updateMusicButton(false);
+            }
+        } else {
+            weddingMusic.pause();
         }
+    });
 
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.setAttribute('readonly', '');
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        textarea.remove();
-        return Promise.resolve();
+    weddingMusic?.addEventListener('play', () => updateMusicButton(true));
+    weddingMusic?.addEventListener('pause', () => updateMusicButton(false));
+
+    function updateMusicButton(isPlaying) {
+        const icon = musicToggle.querySelector('.music-toggle-icon');
+        const label = musicToggle.querySelector('.music-toggle-label');
+        icon.textContent = isPlaying ? '❚❚' : '▶';
+        label.textContent = isPlaying ? '' : '';
+        musicToggle.setAttribute('aria-label', label.textContent);
+        musicToggle.setAttribute('aria-pressed', String(isPlaying));
+        musicToggle.classList.toggle('is-paused', !isPlaying);
     }
 
-    // 5. RSVP Form
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { root: null, rootMargin: '0px', threshold: 0.15 });
+
+    document.querySelectorAll('.fade-in').forEach((element) => observer.observe(element));
+
+    try {
+        const config = await requestJson('/api/config');
+        applyConfig(config);
+        startCountdown(config.wedding.countdownTarget);
+    } catch (error) {
+        console.error('Gagal memuat konfigurasi undangan:', error);
+        document.getElementById('countdown').textContent = 'Gagal memuat waktu acara';
+    }
+
+    document.addEventListener('click', async (event) => {
+        const button = event.target.closest('.copy-btn');
+        if (!button) return;
+        try {
+            await copyText(button.dataset.copy);
+            const originalText = button.textContent;
+            button.textContent = 'Tersalin!';
+            button.classList.add('copied');
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.classList.remove('copied');
+            }, 2000);
+        } catch {
+            button.textContent = 'Gagal menyalin';
+        }
+    });
+
     const rsvpForm = document.getElementById('rsvp-form');
+    const submitButton = document.getElementById('rsvp-submit');
+    const feedback = document.getElementById('rsvp-feedback');
     const wishesContainer = document.getElementById('wishes-container');
 
-    if (rsvpForm) {
-        rsvpForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const name = document.getElementById('guest-name').value;
-            const status = document.getElementById('guest-status').value;
-            const message = document.getElementById('guest-message').value;
-
-            const wishEl = document.createElement('article');
-            wishEl.className = 'wish-card fade-in visible';
-
-            const badgeClass = status === 'Hadir' ? 'badge badge-success' : 'badge badge-danger';
-
-            const header = document.createElement('div');
-            const title = document.createElement('h4');
-            const badge = document.createElement('span');
-            const body = document.createElement('p');
-            const time = document.createElement('small');
-
-            title.textContent = name;
-            badge.className = badgeClass;
-            badge.textContent = status;
-            body.textContent = message;
-            time.textContent = 'Baru saja';
-
-            header.append(title, badge);
-            wishEl.append(header, body, time);
-
-            wishesContainer.prepend(wishEl);
-            rsvpForm.reset();
-        });
+    try {
+        const { wishes } = await requestJson('/api/wishes');
+        renderWishes(wishesContainer, wishes);
+    } catch {
+        wishesContainer.innerHTML = '<p class="wishes-state">Ucapan belum dapat dimuat.</p>';
     }
+
+    rsvpForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        feedback.textContent = '';
+        submitButton.disabled = true;
+        submitButton.textContent = 'Mengirim...';
+
+        try {
+            const result = await requestJson('/api/wishes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: document.getElementById('guest-name').value,
+                    attendance: document.getElementById('guest-status').value,
+                    message: document.getElementById('guest-message').value
+                })
+            });
+            wishesContainer.querySelector('.wishes-state')?.remove();
+            wishesContainer.prepend(createWishElement(result.wish));
+            rsvpForm.reset();
+            feedback.textContent = 'Ucapan berhasil dikirim.';
+            feedback.className = 'form-feedback form-feedback-success';
+        } catch (error) {
+            feedback.textContent = error.message || 'Ucapan gagal dikirim. Silakan coba lagi.';
+            feedback.className = 'form-feedback form-feedback-error';
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Kirim Ucapan';
+        }
+    });
 });
+
+async function requestJson(url, options) {
+    const response = await fetch(url, options);
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Terjadi kesalahan. Silakan coba lagi.');
+    return result;
+}
+
+function applyConfig(config) {
+    const { groom, bride } = config.couple;
+    const coupleNames = `${groom.shortName} & ${bride.shortName}`;
+    document.title = `Undangan Pernikahan | ${coupleNames}`;
+    document.getElementById('page-description').content = `Undangan Pernikahan Digital ${coupleNames}`;
+    document.querySelectorAll('[data-couple-names]').forEach((node) => { node.textContent = coupleNames; });
+
+    setText('groom-name', groom.name);
+    setText('bride-name', bride.name);
+    setInstagram('groom-instagram', groom);
+    setInstagram('bride-instagram', bride);
+    document.getElementById('groom-portrait').alt = groom.name;
+    document.getElementById('bride-portrait').alt = bride.name;
+
+    const akadDate = formatEventDate(config.events[0].date);
+    const shortDate = akadDate.replace(/^\p{L}+,\s*/u, '');
+    document.querySelectorAll('[data-wedding-date]').forEach((node) => { node.textContent = shortDate; });
+
+    document.querySelectorAll('[data-event-index]').forEach((card) => {
+        const event = config.events[Number(card.dataset.eventIndex)];
+        if (!event) return;
+        card.querySelector('[data-event-type]').textContent = event.type;
+        card.querySelector('[data-event-date]').textContent = formatEventDate(event.date);
+        card.querySelector('[data-event-time]').textContent = event.time;
+        card.querySelector('[data-event-venue]').textContent = event.venue;
+        card.querySelector('[data-event-address]').textContent = event.address;
+        card.querySelector('[data-event-map]').href = event.mapUrl;
+    });
+
+    document.querySelectorAll('[data-account-index]').forEach((card) => {
+        const account = config.accounts[Number(card.dataset.accountIndex)];
+        if (!account) return;
+        card.querySelector('[data-bank-name]').textContent = account.bank;
+        card.querySelector('[data-account-number]').textContent = account.number;
+        card.querySelector('[data-account-holder]').textContent = `a.n ${account.holder}`;
+        card.querySelector('.copy-btn').dataset.copy = account.number;
+    });
+}
+
+function formatEventDate(value) {
+    return new Intl.DateTimeFormat('id-ID', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC'
+    }).format(new Date(`${value}T00:00:00Z`));
+}
+
+function setText(id, value) {
+    document.getElementById(id).textContent = value;
+}
+
+function setInstagram(id, person) {
+    const link = document.getElementById(id);
+    link.textContent = person.instagram.handle;
+    link.href = person.instagram.url;
+    link.setAttribute('aria-label', `Instagram ${person.name}`);
+}
+
+function startCountdown(target) {
+    const countdownDate = Date.parse(target);
+    const update = () => {
+        const distance = countdownDate - Date.now();
+        if (distance < 0) {
+            document.getElementById('countdown').textContent = 'Acara Sedang Berlangsung / Selesai';
+            return false;
+        }
+        const units = {
+            days: Math.floor(distance / 86400000),
+            hours: Math.floor((distance % 86400000) / 3600000),
+            minutes: Math.floor((distance % 3600000) / 60000),
+            seconds: Math.floor((distance % 60000) / 1000)
+        };
+        Object.entries(units).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) element.textContent = String(value).padStart(2, '0');
+        });
+        return true;
+    };
+    if (update()) {
+        const timer = setInterval(() => { if (!update()) clearInterval(timer); }, 1000);
+    }
+}
+
+function renderWishes(container, wishes) {
+    container.replaceChildren();
+    if (!wishes.length) {
+        container.innerHTML = '<p class="wishes-state">Belum ada ucapan. Jadilah yang pertama.</p>';
+        return;
+    }
+    wishes.forEach((wish) => container.append(createWishElement(wish)));
+}
+
+function createWishElement(wish) {
+    const article = document.createElement('article');
+    article.className = 'wish-card fade-in visible';
+    const header = document.createElement('div');
+    const title = document.createElement('h4');
+    const badge = document.createElement('span');
+    const message = document.createElement('p');
+    const time = document.createElement('small');
+
+    title.textContent = wish.name;
+    badge.className = wish.attendance === 'HADIR' ? 'badge badge-success' : 'badge badge-danger';
+    badge.textContent = wish.attendance === 'HADIR' ? 'Hadir' : 'Tidak Hadir';
+    message.textContent = wish.message;
+    time.textContent = formatRelativeTime(wish.createdAt);
+    header.append(title, badge);
+    article.append(header, message, time);
+    return article;
+}
+
+function formatRelativeTime(value) {
+    const seconds = Math.max(0, Math.floor((Date.now() - Date.parse(value)) / 1000));
+    if (seconds < 60) return 'Baru saja';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} menit yang lalu`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} jam yang lalu`;
+    return `${Math.floor(seconds / 86400)} hari yang lalu`;
+}
+
+function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    textarea.remove();
+    return Promise.resolve();
+}
