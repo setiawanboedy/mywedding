@@ -1,10 +1,16 @@
-import { loadConfig } from "./src/config.js";
-import { openDatabase, createWishRepository } from "./src/database.js";
+import { DEFAULT_SETTINGS, loadRuntimeConfig, validateSettings } from "./src/config.js";
+import { openDatabase, createSettingsRepository, createWishRepository } from "./src/database.js";
 import { createApp } from "./src/app.js";
+import { createSessionAuth } from "./src/auth.js";
 
-const config = loadConfig();
+const config = loadRuntimeConfig();
 const database = openDatabase(config.databasePath);
-const app = createApp({ config: config.public, wishes: createWishRepository(database) });
+const settings = createSettingsRepository(database, validateSettings(DEFAULT_SETTINGS));
+const app = createApp({
+  settings,
+  wishes: createWishRepository(database),
+  auth: createSessionAuth(config.adminKey)
+});
 
 app.listen({ hostname: "0.0.0.0", port: config.port });
 console.log(`Undangan berjalan di http://0.0.0.0:${config.port}`);

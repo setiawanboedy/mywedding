@@ -5,4 +5,4 @@ data/
 *.sqlite-shm
 *.sqlite-wal
 
-images/*
+/assets/images/

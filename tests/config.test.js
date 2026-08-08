@@ -1,32 +1,38 @@
 import { describe, expect, test } from "bun:test";
-import { loadConfig } from "../src/config.js";
-import { validEnv } from "./helpers.js";
+import { loadRuntimeConfig, validateSettings } from "../src/config.js";
+import { validRuntimeEnv, validSettings } from "./helpers.js";
 
-describe("loadConfig", () => {
-  test("membentuk konfigurasi publik tanpa data internal", () => {
-    const config = loadConfig(validEnv);
-    expect(config.port).toBe(3000);
-    expect(config.public.couple.groom.name).toBe("Budi Setiawan");
-    expect(config.public.couple.groom.shortName).toBe("Budi");
-    expect(config.public.events).toHaveLength(2);
-    expect(config.public.events[0].date).toBe("2026-12-31");
-    expect(config.public.events[1].date).toBe("2027-01-01");
-    expect(config.public.accounts[1].number).toBe("654321");
-    expect(config.public.databasePath).toBeUndefined();
+describe("runtime config", () => {
+  test("hanya membaca konfigurasi infrastruktur dan key", () => {
+    const config = loadRuntimeConfig(validRuntimeEnv);
+    expect(config).toEqual({ port: 3000, databasePath: ":memory:", adminKey: "test-admin-key-123456" });
+  });
+
+  test("menolak key admin yang lemah", () => {
+    expect(() => loadRuntimeConfig({ ...validRuntimeEnv, ADMIN_KEY: "pendek" })).toThrow("minimal 12 karakter");
+  });
+});
+
+describe("settings validation", () => {
+  test("membentuk konfigurasi publik yang bersih", () => {
+    const settings = validateSettings(validSettings());
+    expect(settings.couple.groom.shortName).toBe("Budi");
+    expect(settings.events).toHaveLength(2);
+    expect(settings.accounts[1].number).toBe("0987654321");
   });
 
   test("menolak countdown tanpa zona waktu", () => {
-    expect(() => loadConfig({ ...validEnv, COUNTDOWN_TARGET: "2026-12-31T09:00:00" }))
-      .toThrow("COUNTDOWN_TARGET harus berupa ISO 8601 dengan zona waktu");
+    const settings = validSettings();
+    settings.wedding.countdownTarget = "2026-12-31T09:00:00";
+    expect(() => validateSettings(settings)).toThrow("Countdown harus berupa ISO 8601 dengan zona waktu");
   });
 
-  test("menolak tanggal acara yang tidak valid", () => {
-    expect(() => loadConfig({ ...validEnv, RECEPTION_DATE: "01-01-2027" }))
-      .toThrow("RECEPTION_DATE harus memakai format YYYY-MM-DD");
-  });
-
-  test("menolak variabel wajib yang kosong", () => {
-    expect(() => loadConfig({ ...validEnv, GROOM_NAME: "" }))
-      .toThrow("GROOM_NAME wajib diisi");
+  test("menolak tanggal dan URL tidak valid", () => {
+    const settings = validSettings();
+    settings.events[1].date = "31-12-2026";
+    expect(() => validateSettings(settings)).toThrow("Tanggal resepsi");
+    settings.events[1].date = "2026-12-31";
+    settings.events[1].mapUrl = "javascript:alert(1)";
+    expect(() => validateSettings(settings)).toThrow("URL http/https");
   });
 });

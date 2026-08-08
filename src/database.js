@@ -16,13 +16,46 @@ export function openDatabase(path) {
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
     )
   `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS invitation_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      config_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    )
+  `);
   return database;
 }
 
+export function createSettingsRepository(database, initialSettings) {
+  const getStatement = database.query("SELECT config_json AS configJson, updated_at AS updatedAt FROM invitation_settings WHERE id = 1");
+  const insertStatement = database.query("INSERT OR IGNORE INTO invitation_settings (id, config_json) VALUES (1, $configJson)");
+  const updateStatement = database.query(`
+    UPDATE invitation_settings
+    SET config_json = $configJson, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    WHERE id = 1
+    RETURNING updated_at AS updatedAt
+  `);
+  insertStatement.run({ configJson: JSON.stringify(initialSettings) });
+  return {
+    get: () => {
+      const row = getStatement.get();
+      return { settings: JSON.parse(row.configJson), updatedAt: row.updatedAt };
+    },
+    update: (settings) => {
+      const row = updateStatement.get({ configJson: JSON.stringify(settings) });
+      return { settings, updatedAt: row.updatedAt };
+    }
+  };
+}
+
 export function createWishRepository(database) {
-  const listStatement = database.query(`
+  const listFirstPageStatement = database.query(`
     SELECT id, name, attendance, message, created_at AS createdAt
-    FROM wishes ORDER BY created_at DESC, id DESC LIMIT 100
+    FROM wishes ORDER BY id DESC LIMIT $fetchLimit
+  `);
+  const listBeforeStatement = database.query(`
+    SELECT id, name, attendance, message, created_at AS createdAt
+    FROM wishes WHERE id < $before ORDER BY id DESC LIMIT $fetchLimit
   `);
   const insertStatement = database.query(`
     INSERT INTO wishes (name, attendance, message) VALUES ($name, $attendance, $message)
@@ -30,7 +63,19 @@ export function createWishRepository(database) {
   `);
 
   return {
-    list: () => listStatement.all(),
+    list: ({ limit = 5, before = null } = {}) => {
+      const fetchLimit = limit + 1;
+      const rows = before === null
+        ? listFirstPageStatement.all({ fetchLimit })
+        : listBeforeStatement.all({ before, fetchLimit });
+      const page = rows.slice(0, limit);
+      const hasMore = rows.length > limit;
+      return {
+        wishes: page,
+        hasMore,
+        nextCursor: hasMore ? page.at(-1).id : null
+      };
+    },
     create: (wish) => insertStatement.get({
       name: wish.name,
       attendance: wish.attendance,

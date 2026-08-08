@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Admin Undangan</title>
+    <link rel="stylesheet" href="assets/css/admin.css">
+</head>
+<body>
+    <main class="admin-shell">
+        <section id="login-view" class="panel login-panel">
+            <p class="eyebrow">Undangan Digital</p>
+            <h1>Masuk Admin</h1>
+            <p>Masukkan key akses yang tersimpan pada <code>ADMIN_KEY</code>.</p>
+            <form id="login-form">
+                <label>Key Akses<input id="admin-key" type="password" required autocomplete="current-password"></label>
+                <button type="submit">Masuk</button>
+                <p id="login-feedback" class="feedback" role="status"></p>
+            </form>
+        </section>
+
+        <section id="dashboard-view" hidden>
+            <header class="admin-header">
+                <div><p class="eyebrow">Undangan Digital</p><h1>Dashboard Admin</h1></div>
+                <button id="logout-button" class="button-muted" type="button">Keluar</button>
+            </header>
+            <nav class="tabs" aria-label="Menu admin">
+                <button class="tab-button active" type="button" data-tab="generator">Generator Link</button>
+                <button class="tab-button" type="button" data-tab="settings">Pengaturan</button>
+            </nav>
+
+            <section id="tab-generator" class="panel tab-panel">
+                <h2>Generator Link Tamu</h2>
+                <p>Masukkan nama sebagaimana akan ditampilkan pada cover dan RSVP.</p>
+                <form id="link-form">
+                    <label>Nama Tamu<input id="link-guest-name" maxlength="100" required placeholder="Contoh: Bapak Andi & Keluarga"></label>
+                    <label>Link Undangan<input id="generated-link" type="url" readonly placeholder="Link akan muncul di sini"></label>
+                    <div class="actions">
+                        <button type="submit">Buat Link</button>
+                        <button id="copy-link" class="button-muted" type="button" disabled>Salin Link</button>
+                        <a id="preview-link" class="button-link disabled" href="#" target="_blank" rel="noopener noreferrer">Buka Preview</a>
+                        <button id="reset-link" class="button-ghost" type="reset">Reset</button>
+                    </div>
+                    <p id="link-feedback" class="feedback" role="status"></p>
+                </form>
+            </section>
+
+            <section id="tab-settings" class="panel tab-panel" hidden>
+                <h2>Pengaturan Undangan</h2>
+                <form id="settings-form">
+                    <fieldset><legend>Mempelai Laki-laki</legend>
+                        <label>Nama Lengkap<input name="groomName" maxlength="100" required></label>
+                        <label>Nama Pendek<input name="groomShortName" maxlength="50" required></label>
+                        <label>Handle Instagram<input name="groomInstagramHandle" maxlength="100" required></label>
+                        <label>URL Instagram<input name="groomInstagramUrl" type="url" required></label>
+                    </fieldset>
+                    <fieldset><legend>Mempelai Perempuan</legend>
+                        <label>Nama Lengkap<input name="brideName" maxlength="100" required></label>
+                        <label>Nama Pendek<input name="brideShortName" maxlength="50" required></label>
+                        <label>Handle Instagram<input name="brideInstagramHandle" maxlength="100" required></label>
+                        <label>URL Instagram<input name="brideInstagramUrl" type="url" required></label>
+                    </fieldset>
+                    <fieldset><legend>Countdown</legend>
+                        <label>Tanggal dan Waktu WIB<input name="countdownTarget" type="datetime-local" required></label>
+                    </fieldset>
+                    <fieldset><legend>Akad Nikah</legend>
+                        <label>Tanggal<input name="akadDate" type="date" required></label>
+                        <label>Waktu<input name="akadTime" maxlength="100" required></label>
+                        <label>Nama Lokasi<input name="akadVenue" maxlength="150" required></label>
+                        <label class="full">Alamat<textarea name="akadAddress" maxlength="300" required></textarea></label>
+                        <label class="full">URL Google Maps<input name="akadMapUrl" type="url" required></label>
+                    </fieldset>
+                    <fieldset><legend>Resepsi</legend>
+                        <label>Tanggal<input name="receptionDate" type="date" required></label>
+                        <label>Waktu<input name="receptionTime" maxlength="100" required></label>
+                        <label>Nama Lokasi<input name="receptionVenue" maxlength="150" required></label>
+                        <label class="full">Alamat<textarea name="receptionAddress" maxlength="300" required></textarea></label>
+                        <label class="full">URL Google Maps<input name="receptionMapUrl" type="url" required></label>
+                    </fieldset>
+                    <fieldset><legend>Rekening 1</legend>
+                        <label>Bank<input name="bank1Name" maxlength="50" required></label>
+                        <label>Nomor Rekening<input name="bank1Number" maxlength="100" required inputmode="numeric"></label>
+                        <label>Pemilik Rekening<input name="bank1Holder" maxlength="100" required></label>
+                    </fieldset>
+                    <fieldset><legend>Rekening 2</legend>
+                        <label>Bank<input name="bank2Name" maxlength="50" required></label>
+                        <label>Nomor Rekening<input name="bank2Number" maxlength="100" required inputmode="numeric"></label>
+                        <label>Pemilik Rekening<input name="bank2Holder" maxlength="100" required></label>
+                    </fieldset>
+                    <div class="sticky-actions"><button id="save-settings" type="submit">Simpan Pengaturan</button><p id="settings-feedback" class="feedback" role="status"></p></div>
+                </form>
+            </section>
+        </section>
+    </main>
+    <script src="assets/js/admin.js"></script>
+</body>
+</html>

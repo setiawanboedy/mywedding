@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createApp } from "../src/app.js";
-import { loadConfig } from "../src/config.js";
-import { createWishRepository, openDatabase } from "../src/database.js";
-import { validEnv } from "./helpers.js";
+import { createSessionAuth } from "../src/auth.js";
+import { createSettingsRepository, createWishRepository, openDatabase } from "../src/database.js";
+import { validSettings } from "./helpers.js";
 
 let database;
 let app;
@@ -10,45 +10,69 @@ let app;
 beforeEach(() => {
   database = openDatabase(":memory:");
   app = createApp({
-    config: loadConfig(validEnv).public,
-    wishes: createWishRepository(database)
+    settings: createSettingsRepository(database, validSettings()),
+    wishes: createWishRepository(database),
+    auth: createSessionAuth("test-admin-key-123456")
   });
 });
 
 afterEach(() => database.close());
 
-describe("API", () => {
+describe("public API", () => {
   test("health dan config dapat dibaca", async () => {
     const health = await app.handle(new Request("http://localhost/api/health"));
     expect(health.status).toBe(200);
     expect(await health.json()).toEqual({ status: "ok" });
-
     const response = await app.handle(new Request("http://localhost/api/config"));
-    const config = await response.json();
-    expect(config.couple.bride.name).toBe("Widia Hasmiati");
-    expect(config.databasePath).toBeUndefined();
+    expect((await response.json()).couple.bride.name).toBe("Widia Hasmiati");
   });
 
   test("membuat lalu membaca RSVP", async () => {
     const createResponse = await app.handle(new Request("http://localhost/api/wishes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Andi", attendance: "HADIR", message: "Selamat!" })
     }));
     expect(createResponse.status).toBe(201);
-    expect((await createResponse.json()).wish.name).toBe("Andi");
-
-    const listResponse = await app.handle(new Request("http://localhost/api/wishes"));
+    const listResponse = await app.handle(new Request("http://localhost/api/wishes?limit=5"));
     expect((await listResponse.json()).wishes).toHaveLength(1);
   });
 
-  test("menolak input RSVP tidak valid", async () => {
-    const response = await app.handle(new Request("http://localhost/api/wishes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "A", attendance: "MUNGKIN", message: "" })
+  test("menolak RSVP dan pagination tidak valid", async () => {
+    const invalidWish = await app.handle(new Request("http://localhost/api/wishes", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "", attendance: "MUNGKIN", message: "" })
     }));
-    expect(response.status).toBe(422);
-    expect((await response.json()).error).toContain("Nama");
+    expect(invalidWish.status).toBe(422);
+    const invalidPage = await app.handle(new Request("http://localhost/api/wishes?limit=100"));
+    expect(invalidPage.status).toBe(422);
+  });
+});
+
+describe("admin API", () => {
+  test("menolak settings tanpa sesi", async () => {
+    const response = await app.handle(new Request("http://localhost/api/admin/settings"));
+    expect(response.status).toBe(401);
+  });
+
+  test("login, membaca, dan memperbarui settings", async () => {
+    const wrong = await app.handle(new Request("http://localhost/api/admin/login", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: "salah" })
+    }));
+    expect(wrong.status).toBe(401);
+    const login = await app.handle(new Request("http://localhost/api/admin/login", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: "test-admin-key-123456" })
+    }));
+    expect(login.status).toBe(200);
+    const cookie = login.headers.get("set-cookie").split(";")[0];
+    const settingsResponse = await app.handle(new Request("http://localhost/api/admin/settings", { headers: { Cookie: cookie } }));
+    const data = await settingsResponse.json();
+    expect(data.settings.couple.groom.shortName).toBe("Budi");
+    data.settings.couple.groom.shortName = "Bud";
+    const update = await app.handle(new Request("http://localhost/api/admin/settings", {
+      method: "PUT", headers: { "Content-Type": "application/json", Cookie: cookie }, body: JSON.stringify(data.settings)
+    }));
+    expect(update.status).toBe(200);
+    const publicConfig = await app.handle(new Request("http://localhost/api/config"));
+    expect((await publicConfig.json()).couple.groom.shortName).toBe("Bud");
   });
 });

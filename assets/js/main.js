@@ -3,18 +3,94 @@ document.addEventListener('DOMContentLoaded', async () => {
     const coverPage = document.getElementById('cover-page');
     const weddingMusic = document.getElementById('wedding-music');
     const musicToggle = document.getElementById('music-toggle');
+    const navMenuToggle = document.getElementById('nav-menu-toggle');
+    const navigationSheet = document.getElementById('navigation-sheet');
+    const navigationBackdrop = document.getElementById('navigation-backdrop');
+    const navigationClose = document.getElementById('navigation-close');
+    const navigationLinks = [...document.querySelectorAll('[data-nav-target]')];
+    let navigationCloseTimer;
     document.body.style.overflow = 'hidden';
 
     btnOpen?.addEventListener('click', async () => {
         coverPage?.classList.add('cover-slide-up');
         document.body.style.overflow = 'auto';
         musicToggle.hidden = false;
+        navMenuToggle.hidden = false;
         try {
             await weddingMusic.play();
         } catch {
             updateMusicButton(false);
         }
     });
+
+    function openNavigation() {
+        clearTimeout(navigationCloseTimer);
+        navigationSheet.hidden = false;
+        navigationBackdrop.hidden = false;
+        document.body.classList.add('navigation-open');
+        navMenuToggle.setAttribute('aria-expanded', 'true');
+        requestAnimationFrame(() => {
+            navigationSheet.classList.add('is-open');
+            navigationBackdrop.classList.add('is-open');
+            navigationLinks[0].focus();
+        });
+    }
+
+    function closeNavigation({ restoreFocus = true } = {}) {
+        navigationSheet.classList.remove('is-open');
+        navigationBackdrop.classList.remove('is-open');
+        document.body.classList.remove('navigation-open');
+        navMenuToggle.setAttribute('aria-expanded', 'false');
+        const finish = () => {
+            navigationSheet.hidden = true;
+            navigationBackdrop.hidden = true;
+            if (restoreFocus) navMenuToggle.focus();
+        };
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) finish();
+        else navigationCloseTimer = setTimeout(finish, 260);
+    }
+
+    navMenuToggle?.addEventListener('click', openNavigation);
+    navigationClose?.addEventListener('click', () => closeNavigation());
+    navigationBackdrop?.addEventListener('click', () => closeNavigation());
+    navigationLinks.forEach((link) => link.addEventListener('click', (event) => {
+        event.preventDefault();
+        const target = document.getElementById(link.dataset.navTarget);
+        closeNavigation({ restoreFocus: false });
+        const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+        setTimeout(() => target?.scrollIntoView({ behavior, block: 'start' }), 50);
+    }));
+
+    document.addEventListener('keydown', (event) => {
+        if (navigationSheet.hidden) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeNavigation();
+            return;
+        }
+        if (event.key !== 'Tab') return;
+        const focusable = [navigationClose, ...navigationLinks];
+        const first = focusable[0];
+        const last = focusable.at(-1);
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault(); last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault(); first.focus();
+        }
+    });
+
+    const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            navigationLinks.forEach((link) => {
+                const active = link.dataset.navTarget === entry.target.id;
+                link.classList.toggle('active', active);
+                if (active) link.setAttribute('aria-current', 'page');
+                else link.removeAttribute('aria-current');
+            });
+        });
+    }, { rootMargin: '-30% 0px -55% 0px', threshold: 0 });
+    ['beranda', 'mempelai', 'lokasi', 'rsvp'].forEach((id) => sectionObserver.observe(document.getElementById(id)));
 
     musicToggle?.addEventListener('click', async () => {
         if (weddingMusic.paused) {
@@ -33,10 +109,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function updateMusicButton(isPlaying) {
         const icon = musicToggle.querySelector('.music-toggle-icon');
-        const label = musicToggle.querySelector('.music-toggle-label');
         icon.textContent = isPlaying ? '❚❚' : '▶';
-        label.textContent = isPlaying ? '' : '';
-        musicToggle.setAttribute('aria-label', label.textContent);
+        musicToggle.setAttribute('aria-label', isPlaying ? 'Jeda musik' : 'Putar musik');
         musicToggle.setAttribute('aria-pressed', String(isPlaying));
         musicToggle.classList.toggle('is-paused', !isPlaying);
     }
@@ -82,13 +156,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     const submitButton = document.getElementById('rsvp-submit');
     const feedback = document.getElementById('rsvp-feedback');
     const wishesContainer = document.getElementById('wishes-container');
+    const loadMoreButton = document.getElementById('wishes-load-more');
+    const personalizedGuestName = getGuestNameFromUrl();
+    let nextCursor = null;
+
+    if (personalizedGuestName) {
+        const guestNameInput = document.getElementById('guest-name');
+        document.getElementById('guest-name-cover').textContent = personalizedGuestName;
+        guestNameInput.value = personalizedGuestName;
+        guestNameInput.defaultValue = personalizedGuestName;
+        guestNameInput.readOnly = true;
+    }
+
+    async function loadWishes(reset = false) {
+        const params = new URLSearchParams({ limit: '5' });
+        if (!reset && nextCursor) params.set('before', String(nextCursor));
+        loadMoreButton.disabled = true;
+        loadMoreButton.textContent = 'Memuat...';
+        try {
+            const page = await requestJson(`/api/wishes?${params}`);
+            renderWishPage(wishesContainer, page.wishes, reset);
+            nextCursor = page.nextCursor;
+            loadMoreButton.hidden = !page.hasMore;
+        } finally {
+            loadMoreButton.disabled = false;
+            loadMoreButton.textContent = 'Muat Lebih Banyak';
+        }
+    }
 
     try {
-        const { wishes } = await requestJson('/api/wishes');
-        renderWishes(wishesContainer, wishes);
+        await loadWishes(true);
     } catch {
         wishesContainer.innerHTML = '<p class="wishes-state">Ucapan belum dapat dimuat.</p>';
+        loadMoreButton.hidden = true;
     }
+
+    loadMoreButton?.addEventListener('click', async () => {
+        try {
+            await loadWishes();
+        } catch {
+            feedback.textContent = 'Ucapan berikutnya gagal dimuat. Silakan coba lagi.';
+            feedback.className = 'form-feedback form-feedback-error';
+        }
+    });
 
     rsvpForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -97,7 +207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         submitButton.textContent = 'Mengirim...';
 
         try {
-            const result = await requestJson('/api/wishes', {
+            await requestJson('/api/wishes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -106,11 +216,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     message: document.getElementById('guest-message').value
                 })
             });
-            wishesContainer.querySelector('.wishes-state')?.remove();
-            wishesContainer.prepend(createWishElement(result.wish));
             rsvpForm.reset();
             feedback.textContent = 'Ucapan berhasil dikirim.';
             feedback.className = 'form-feedback form-feedback-success';
+            try {
+                await loadWishes(true);
+            } catch {
+                feedback.textContent = 'Ucapan tersimpan, tetapi daftar belum dapat diperbarui.';
+            }
         } catch (error) {
             feedback.textContent = error.message || 'Ucapan gagal dikirim. Silakan coba lagi.';
             feedback.className = 'form-feedback form-feedback-error';
@@ -167,6 +280,11 @@ function applyConfig(config) {
     });
 }
 
+function getGuestNameFromUrl() {
+    const guestName = new URLSearchParams(window.location.search).get('to')?.trim();
+    return guestName && guestName.length <= 100 ? guestName : null;
+}
+
 function formatEventDate(value) {
     return new Intl.DateTimeFormat('id-ID', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC'
@@ -209,12 +327,13 @@ function startCountdown(target) {
     }
 }
 
-function renderWishes(container, wishes) {
-    container.replaceChildren();
-    if (!wishes.length) {
+function renderWishPage(container, wishes, reset) {
+    if (reset) container.replaceChildren();
+    if (reset && !wishes.length) {
         container.innerHTML = '<p class="wishes-state">Belum ada ucapan. Jadilah yang pertama.</p>';
         return;
     }
+    container.querySelector('.wishes-state')?.remove();
     wishes.forEach((wish) => container.append(createWishElement(wish)));
 }
 

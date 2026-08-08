@@ -14,8 +14,37 @@
         </audio>
         <button id="music-toggle" class="music-toggle" type="button" aria-label="Jeda musik" aria-pressed="true" hidden>
             <span class="music-toggle-icon" aria-hidden="true">❚❚</span>
-            <span class="music-toggle-label"></span>
         </button>
+        <button id="nav-menu-toggle" class="nav-menu-toggle" type="button" aria-label="Buka menu navigasi" aria-expanded="false" aria-controls="navigation-sheet" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            <span>Menu</span>
+        </button>
+        <div id="navigation-backdrop" class="navigation-backdrop" hidden></div>
+        <aside id="navigation-sheet" class="navigation-sheet" role="dialog" aria-modal="true" aria-labelledby="navigation-title" tabindex="-1" hidden>
+            <div class="sheet-handle" aria-hidden="true"></div>
+            <div class="sheet-header">
+                <h2 id="navigation-title">Menu Undangan</h2>
+                <button id="navigation-close" class="sheet-close" type="button" aria-label="Tutup menu">&times;</button>
+            </div>
+            <nav class="sheet-menu" aria-label="Navigasi undangan">
+                <a href="#beranda" data-nav-target="beranda">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+                    <span>Beranda</span>
+                </a>
+                <a href="#mempelai" data-nav-target="mempelai">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M3 20c0-4 2.5-6 6-6s6 2 6 6M14 15c3.5 0 6 1.5 6 5"/></svg>
+                    <span>Mempelai</span>
+                </a>
+                <a href="#lokasi" data-nav-target="lokasi">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.2 7-13a7 7 0 1 0-14 0c0 6.8 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                    <span>Acara</span>
+                </a>
+                <a href="#rsvp" data-nav-target="rsvp">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v13H8l-4 4z"/><path d="M8 9h8M8 13h5"/></svg>
+                    <span>RSVP</span>
+                </a>
+            </nav>
+        </aside>
 
         <div id="cover-page" class="cover-screen">
             <img src="assets/img/generated/hero-floral-arch.png" alt="" class="cover-arch">
@@ -30,7 +59,7 @@
             </div>
         </div>
 
-        <section class="hero-section">
+        <section id="beranda" class="hero-section">
             <img src="assets/img/generated/garden-hero-bg.png" alt="Garden wedding background" class="hero-bg">
             <div class="hero-shade"></div>
             <div class="hero-content fade-in">
@@ -57,7 +86,7 @@
             </div>
         </section>
 
-        <section class="section couple-section">
+        <section id="mempelai" class="section couple-section">
             <div class="section-inner">
                 <div class="section-heading fade-in">
                     <p class="eyebrow">Mempelai</p>
@@ -179,7 +208,7 @@
             </div>
         </section>
 
-        <section class="section rsvp-section">
+        <section id="rsvp" class="section rsvp-section">
             <img src="assets/img/generated/lantern-floral-accent.png" alt="" class="rsvp-lantern rsvp-lantern-left">
             <img src="assets/img/generated/lantern-floral-accent.png" alt="" class="rsvp-lantern rsvp-lantern-right">
             <div class="section-inner">
@@ -212,6 +241,7 @@
                 <div class="wishes-list" id="wishes-container">
                     <p class="wishes-state">Memuat ucapan...</p>
                 </div>
+                <button id="wishes-load-more" class="btn btn-secondary wishes-load-more" type="button" hidden>Muat Lebih Banyak</button>
             </div>
         </section>
 
