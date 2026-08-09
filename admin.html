@@ -28,6 +28,7 @@
             <nav class="tabs" aria-label="Menu admin">
                 <button class="tab-button active" type="button" data-tab="generator">Generator Link</button>
                 <button class="tab-button" type="button" data-tab="settings">Pengaturan</button>
+                <button class="tab-button" type="button" data-tab="gallery">Galeri</button>
             </nav>
 
             <section id="tab-generator" class="panel tab-panel">
@@ -44,6 +45,23 @@
                     </div>
                     <p id="link-feedback" class="feedback" role="status"></p>
                 </form>
+            </section>
+
+            <section id="tab-gallery" class="panel tab-panel" hidden>
+                <h2>Galeri Foto</h2>
+                <p>Upload maksimal 12 gambar. Gambar pertama akan tampil lebar pada halaman undangan.</p>
+                <form id="gallery-upload-form" class="gallery-upload-form">
+                    <label>Pilih Gambar
+                        <input id="gallery-files" type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple required>
+                    </label>
+                    <div class="actions">
+                        <button id="gallery-upload-button" type="submit">Upload Gambar</button>
+                        <span id="gallery-slot-info" class="slot-info">0 dari 12 gambar</span>
+                    </div>
+                    <p id="gallery-feedback" class="feedback" role="status"></p>
+                </form>
+                <div id="admin-gallery-list" class="admin-gallery-list"></div>
+                <p id="gallery-empty" class="empty-state" hidden>Belum ada gambar. Section galeri pada undangan sedang disembunyikan.</p>
             </section>
 
             <section id="tab-settings" class="panel tab-panel" hidden>

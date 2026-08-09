@@ -648,6 +648,10 @@ a {
   background: var(--ivory);
 }
 
+.gallery-section[hidden] {
+  display: none;
+}
+
 .gallery-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -842,12 +846,6 @@ a {
 
 .wishes-load-more[hidden] {
   display: none;
-}
-
-.rsvp-form input[readonly] {
-  color: var(--leaf-800);
-  background: var(--sage-100);
-  cursor: not-allowed;
 }
 
 .wish-card {

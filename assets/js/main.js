@@ -135,6 +135,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('countdown').textContent = 'Gagal memuat waktu acara';
     }
 
+    try {
+        const { images } = await requestJson('/api/gallery');
+        renderGallery(images);
+    } catch {
+        document.getElementById('galeri').hidden = true;
+    }
+
     document.addEventListener('click', async (event) => {
         const button = event.target.closest('.copy-btn');
         if (!button) return;
@@ -165,7 +172,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('guest-name-cover').textContent = personalizedGuestName;
         guestNameInput.value = personalizedGuestName;
         guestNameInput.defaultValue = personalizedGuestName;
-        guestNameInput.readOnly = true;
     }
 
     async function loadWishes(reset = false) {
@@ -283,6 +289,24 @@ function applyConfig(config) {
 function getGuestNameFromUrl() {
     const guestName = new URLSearchParams(window.location.search).get('to')?.trim();
     return guestName && guestName.length <= 100 ? guestName : null;
+}
+
+function renderGallery(images) {
+    const section = document.getElementById('galeri');
+    const grid = document.getElementById('gallery-grid');
+    grid.replaceChildren();
+    section.hidden = images.length === 0;
+    images.forEach((image, index) => {
+        const figure = document.createElement('figure');
+        figure.className = `gallery-item fade-in visible${index === 0 ? ' gallery-wide' : ''}`;
+        const element = document.createElement('img');
+        element.src = image.url;
+        element.alt = `Foto galeri pernikahan ${index + 1}`;
+        element.loading = 'lazy';
+        element.decoding = 'async';
+        figure.append(element);
+        grid.append(figure);
+    });
 }
 
 function formatEventDate(value) {

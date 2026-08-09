@@ -23,7 +23,47 @@ export function openDatabase(path) {
       updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
     )
   `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS gallery_images (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      filename TEXT NOT NULL UNIQUE,
+      mime_type TEXT NOT NULL,
+      position INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    )
+  `);
   return database;
+}
+
+export function createGalleryRepository(database) {
+  const listStatement = database.query(`
+    SELECT id, filename, mime_type AS mimeType, position, created_at AS createdAt
+    FROM gallery_images ORDER BY position, id
+  `);
+  const findByIdStatement = database.query("SELECT id, filename, mime_type AS mimeType, position FROM gallery_images WHERE id = $id");
+  const findByFilenameStatement = database.query("SELECT id, filename, mime_type AS mimeType, position FROM gallery_images WHERE filename = $filename");
+  const insertStatement = database.query("INSERT INTO gallery_images (filename, mime_type, position) VALUES ($filename, $mimeType, $position)");
+  const deleteStatement = database.query("DELETE FROM gallery_images WHERE id = $id");
+  const updatePositionStatement = database.query("UPDATE gallery_images SET position = $position WHERE id = $id");
+  const insertMany = database.transaction((images) => {
+    let position = listStatement.all().length;
+    for (const image of images) insertStatement.run({ ...image, position: position++ });
+  });
+  const reorderMany = database.transaction((ids) => {
+    ids.forEach((id, position) => updatePositionStatement.run({ id, position }));
+  });
+  const removeAndCompact = database.transaction((id) => {
+    deleteStatement.run({ id });
+    listStatement.all().forEach((image, position) => updatePositionStatement.run({ id: image.id, position }));
+  });
+  return {
+    list: () => listStatement.all(),
+    findById: (id) => findByIdStatement.get({ id }),
+    findByFilename: (filename) => findByFilenameStatement.get({ filename }),
+    insertMany,
+    reorder: reorderMany,
+    delete: removeAndCompact
+  };
 }
 
 export function createSettingsRepository(database, initialSettings) {

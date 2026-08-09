@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { join, resolve, sep } from "node:path";
 import { validateSettings } from "./config.js";
+import { GalleryValidationError } from "./gallery.js";
 
 const attendanceValues = new Set(["HADIR", "TIDAK_HADIR"]);
 
@@ -26,7 +27,7 @@ export function parsePagination(query = {}) {
   return { limit, before };
 }
 
-export function createApp({ settings, wishes, auth, staticRoot = process.cwd() }) {
+export function createApp({ settings, wishes, auth, gallery, staticRoot = process.cwd() }) {
   const assetsRoot = resolve(staticRoot, "assets");
 
   function requireAdmin(request, set) {
@@ -38,6 +39,7 @@ export function createApp({ settings, wishes, auth, staticRoot = process.cwd() }
   return new Elysia()
     .get("/api/health", () => ({ status: "ok" }))
     .get("/api/config", () => settings.get().settings)
+    .get("/api/gallery", () => ({ images: gallery.list() }))
     .get("/api/wishes", ({ query, set }) => {
       try {
         return wishes.list(parsePagination(query));
@@ -88,6 +90,63 @@ export function createApp({ settings, wishes, auth, staticRoot = process.cwd() }
         set.status = 422;
         return { error: error.message };
       }
+    })
+    .get("/api/admin/gallery", ({ request, set }) => {
+      if (!requireAdmin(request, set)) return { error: "Akses ditolak" };
+      return { images: gallery.list() };
+    })
+    .post("/api/admin/gallery", async ({ request, set }) => {
+      if (!requireAdmin(request, set)) return { error: "Akses ditolak" };
+      try {
+        const formData = await request.formData();
+        const files = formData.getAll("images").filter((value) => value instanceof File);
+        const images = await gallery.upload(files);
+        set.status = 201;
+        return { images };
+      } catch (error) {
+        if (error instanceof GalleryValidationError) {
+          set.status = 422;
+          return { error: error.message };
+        }
+        throw error;
+      }
+    })
+    .put("/api/admin/gallery/order", ({ body, request, set }) => {
+      if (!requireAdmin(request, set)) return { error: "Akses ditolak" };
+      try {
+        const ids = Array.isArray(body?.ids) ? body.ids.map(Number) : [];
+        return { images: gallery.reorder(ids) };
+      } catch (error) {
+        if (error instanceof GalleryValidationError) {
+          set.status = 422;
+          return { error: error.message };
+        }
+        throw error;
+      }
+    })
+    .delete("/api/admin/gallery/:id", async ({ params, request, set }) => {
+      if (!requireAdmin(request, set)) return { error: "Akses ditolak" };
+      const id = Number(params.id);
+      if (!Number.isInteger(id) || id < 1 || !(await gallery.delete(id))) {
+        set.status = 404;
+        return { error: "Gambar tidak ditemukan" };
+      }
+      return { images: gallery.list() };
+    })
+    .get("/uploads/gallery/:filename", ({ params, set }) => {
+      const image = gallery.getFile(params.filename);
+      if (!image) {
+        set.status = 404;
+        return "Not Found";
+      }
+      const file = Bun.file(image.path);
+      if (!file.size) {
+        set.status = 404;
+        return "Not Found";
+      }
+      set.headers["content-type"] = image.mimeType;
+      set.headers["cache-control"] = "public, max-age=31536000, immutable";
+      return file;
     })
     .get("/assets/*", ({ params, set }) => {
       const requestedPath = resolve(assetsRoot, params["*"] || "");

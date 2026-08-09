@@ -28,6 +28,16 @@ textarea { min-height:78px; resize:vertical; }
 .feedback.error { color:var(--danger); }
 .feedback.success { color:var(--green-light); }
 .sticky-actions { position:sticky; bottom:12px; display:flex; align-items:center; gap:14px; border-radius:14px; padding:12px; background:rgba(255,253,244,.94); box-shadow:0 8px 28px rgba(31,50,29,.16); }
+.slot-info { align-self:center; color:var(--muted); font-size:.84rem; font-weight:800; }
+.admin-gallery-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:22px; }
+.admin-gallery-card { overflow:hidden; border:1px solid rgba(84,113,57,.18); border-radius:15px; background:white; box-shadow:0 8px 24px rgba(31,50,29,.1); }
+.admin-gallery-card img { display:block; width:100%; aspect-ratio:4/3; object-fit:cover; }
+.gallery-card-footer { display:flex; align-items:center; justify-content:space-between; gap:7px; padding:10px; }
+.gallery-position { color:var(--muted); font-size:.76rem; font-weight:800; }
+.gallery-card-actions { display:flex; gap:5px; }
+.gallery-card-actions button { width:34px; min-height:34px; padding:0; border-radius:50%; font-size:.82rem; }
+.gallery-card-actions .delete-image { color:white; background:var(--danger); }
+.empty-state { margin:22px 0 0; border-radius:14px; padding:18px; color:var(--muted); background:#f5f6e7; text-align:center; }
 [hidden] { display:none !important; }
 code { overflow-wrap:anywhere; }
-@media (max-width:640px) { .admin-shell{margin:14px auto;} fieldset{grid-template-columns:1fr;} label.full{grid-column:auto;} .admin-header{align-items:flex-start;} .sticky-actions{align-items:stretch;flex-direction:column;} }
+@media (max-width:640px) { .admin-shell{margin:14px auto;} fieldset{grid-template-columns:1fr;} label.full{grid-column:auto;} .admin-header{align-items:flex-start;} .sticky-actions{align-items:stretch;flex-direction:column;} .admin-gallery-list{grid-template-columns:repeat(2,minmax(0,1fr));} }

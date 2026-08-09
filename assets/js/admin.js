@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const loginFeedback = document.getElementById('login-feedback');
     const settingsForm = document.getElementById('settings-form');
     let settingsLoaded = false;
+    let galleryLoaded = false;
+    let galleryImages = [];
 
     async function requestJson(url, options) {
         const response = await fetch(url, options);
@@ -51,6 +53,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (button.dataset.tab === 'settings' && !settingsLoaded) {
             await loadSettings();
         }
+        if (button.dataset.tab === 'gallery' && !galleryLoaded) {
+            await loadGallery();
+        }
     }));
 
     const linkForm = document.getElementById('link-form');
@@ -89,6 +94,108 @@ document.addEventListener('DOMContentLoaded', async () => {
             linkFeedback.className = 'feedback error';
         }
     });
+
+    const galleryForm = document.getElementById('gallery-upload-form');
+    const galleryFiles = document.getElementById('gallery-files');
+    const galleryFeedback = document.getElementById('gallery-feedback');
+    const galleryList = document.getElementById('admin-gallery-list');
+
+    async function loadGallery() {
+        galleryFeedback.textContent = 'Memuat galeri...';
+        try {
+            const { images } = await requestJson('/api/admin/gallery');
+            galleryImages = images;
+            galleryLoaded = true;
+            renderAdminGallery();
+            galleryFeedback.textContent = '';
+        } catch (error) {
+            galleryFeedback.textContent = error.message;
+            galleryFeedback.className = 'feedback error';
+        }
+    }
+
+    galleryForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const button = document.getElementById('gallery-upload-button');
+        const files = [...galleryFiles.files];
+        if (!files.length) return;
+        const formData = new FormData();
+        files.forEach((file) => formData.append('images', file));
+        button.disabled = true;
+        galleryFeedback.textContent = 'Mengupload gambar...';
+        try {
+            const { images } = await requestJson('/api/admin/gallery', { method: 'POST', body: formData });
+            galleryImages = images;
+            galleryForm.reset();
+            renderAdminGallery();
+            galleryFeedback.textContent = 'Gambar berhasil diupload.';
+            galleryFeedback.className = 'feedback success';
+        } catch (error) {
+            galleryFeedback.textContent = error.message;
+            galleryFeedback.className = 'feedback error';
+        } finally { button.disabled = false; }
+    });
+
+    galleryList.addEventListener('click', async (event) => {
+        const button = event.target.closest('button[data-image-id]');
+        if (!button) return;
+        const id = Number(button.dataset.imageId);
+        const index = galleryImages.findIndex((image) => image.id === id);
+        if (button.classList.contains('delete-image')) {
+            if (!confirm('Hapus gambar ini dari galeri?')) return;
+            await updateGallery(() => requestJson(`/api/admin/gallery/${id}`, { method: 'DELETE' }), 'Gambar berhasil dihapus.');
+            return;
+        }
+        const direction = button.dataset.direction;
+        const targetIndex = direction === 'up' ? index - 1 : index + 1;
+        if (index < 0 || targetIndex < 0 || targetIndex >= galleryImages.length) return;
+        const ids = galleryImages.map((image) => image.id);
+        [ids[index], ids[targetIndex]] = [ids[targetIndex], ids[index]];
+        await updateGallery(() => requestJson('/api/admin/gallery/order', {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids })
+        }), 'Urutan galeri berhasil diubah.');
+    });
+
+    async function updateGallery(action, successMessage) {
+        galleryFeedback.textContent = 'Menyimpan perubahan...';
+        try {
+            const { images } = await action();
+            galleryImages = images;
+            renderAdminGallery();
+            galleryFeedback.textContent = successMessage;
+            galleryFeedback.className = 'feedback success';
+        } catch (error) {
+            galleryFeedback.textContent = error.message;
+            galleryFeedback.className = 'feedback error';
+        }
+    }
+
+    function renderAdminGallery() {
+        galleryList.replaceChildren();
+        document.getElementById('gallery-slot-info').textContent = `${galleryImages.length} dari 12 gambar`;
+        document.getElementById('gallery-empty').hidden = galleryImages.length > 0;
+        galleryFiles.disabled = galleryImages.length >= 12;
+        document.getElementById('gallery-upload-button').disabled = galleryImages.length >= 12;
+        galleryImages.forEach((image, index) => {
+            const card = document.createElement('article');
+            card.className = 'admin-gallery-card';
+            const preview = document.createElement('img');
+            preview.src = image.url;
+            preview.alt = `Gambar galeri ${index + 1}`;
+            preview.loading = 'lazy';
+            const footer = document.createElement('div');
+            footer.className = 'gallery-card-footer';
+            const position = document.createElement('span');
+            position.className = 'gallery-position';
+            position.textContent = index === 0 ? 'Utama' : `#${index + 1}`;
+            const actions = document.createElement('div');
+            actions.className = 'gallery-card-actions';
+            actions.innerHTML = `<button type="button" data-image-id="${image.id}" data-direction="up" aria-label="Geser gambar ke atas" ${index === 0 ? 'disabled' : ''}>↑</button><button type="button" data-image-id="${image.id}" data-direction="down" aria-label="Geser gambar ke bawah" ${index === galleryImages.length - 1 ? 'disabled' : ''}>↓</button><button type="button" class="delete-image" data-image-id="${image.id}" aria-label="Hapus gambar">×</button>`;
+            footer.append(position, actions);
+            card.append(preview, footer);
+            galleryList.append(card);
+        });
+    }
 
     async function loadSettings() {
         const feedback = document.getElementById('settings-feedback');

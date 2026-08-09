@@ -18,5 +18,13 @@ services:
       retries: 5
       start_period: 5s
 
+    networks:
+      - universal  
+
 volumes:
   invitation-data:
+
+networks:
+  universal:
+    external: true
+    name: universal

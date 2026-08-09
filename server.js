@@ -1,15 +1,19 @@
 import { DEFAULT_SETTINGS, loadRuntimeConfig, validateSettings } from "./src/config.js";
-import { openDatabase, createSettingsRepository, createWishRepository } from "./src/database.js";
+import { openDatabase, createGalleryRepository, createSettingsRepository, createWishRepository } from "./src/database.js";
 import { createApp } from "./src/app.js";
 import { createSessionAuth } from "./src/auth.js";
+import { createGalleryService } from "./src/gallery.js";
+import { dirname, join } from "node:path";
 
 const config = loadRuntimeConfig();
 const database = openDatabase(config.databasePath);
 const settings = createSettingsRepository(database, validateSettings(DEFAULT_SETTINGS));
+const gallery = createGalleryService(createGalleryRepository(database), join(dirname(config.databasePath), "uploads", "gallery"));
 const app = createApp({
   settings,
   wishes: createWishRepository(database),
-  auth: createSessionAuth(config.adminKey)
+  auth: createSessionAuth(config.adminKey),
+  gallery
 });
 
 app.listen({ hostname: "0.0.0.0", port: config.port });
