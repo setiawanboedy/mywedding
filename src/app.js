@@ -108,7 +108,9 @@ export function createApp({ settings, wishes, auth, gallery, staticRoot = proces
           set.status = 422;
           return { error: error.message };
         }
-        throw error;
+        console.error("Gallery upload failed", error);
+        set.status = 500;
+        return { error: "Upload gagal diproses oleh server. Silakan coba lagi atau periksa log server." };
       }
     })
     .put("/api/admin/gallery/order", ({ body, request, set }) => {
@@ -159,15 +161,23 @@ export function createApp({ settings, wishes, auth, gallery, staticRoot = proces
         set.status = 404;
         return "Not Found";
       }
+      if (/\.(js|css)$/.test(requestedPath)) set.headers["cache-control"] = "no-store";
       return file;
     })
-    .get("/admin", () => Bun.file(join(staticRoot, "admin.html")))
-    .get("/", () => Bun.file(join(staticRoot, "index.html")))
-    .onError(({ code, set }) => {
+    .get("/admin", ({ set }) => {
+      set.headers["cache-control"] = "no-store";
+      return Bun.file(join(staticRoot, "admin.html"));
+    })
+    .get("/", ({ set }) => {
+      set.headers["cache-control"] = "no-store";
+      return Bun.file(join(staticRoot, "index.html"));
+    })
+    .onError(({ code, error, set }) => {
       if (code === "NOT_FOUND") {
         set.status = 404;
         return { error: "Not Found" };
       }
+      console.error(`Unhandled server error (${code})`, error);
       set.status = 500;
       return { error: "Terjadi kesalahan pada server" };
     });

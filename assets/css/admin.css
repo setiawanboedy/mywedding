@@ -29,6 +29,7 @@ textarea { min-height:78px; resize:vertical; }
 .feedback.success { color:var(--green-light); }
 .sticky-actions { position:sticky; bottom:12px; display:flex; align-items:center; gap:14px; border-radius:14px; padding:12px; background:rgba(255,253,244,.94); box-shadow:0 8px 28px rgba(31,50,29,.16); }
 .slot-info { align-self:center; color:var(--muted); font-size:.84rem; font-weight:800; }
+.upload-hint { border-radius:10px; padding:10px 12px; color:var(--green); background:#eef0d7; font-size:.82rem; }
 .admin-gallery-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:22px; }
 .admin-gallery-card { overflow:hidden; border:1px solid rgba(84,113,57,.18); border-radius:15px; background:white; box-shadow:0 8px 24px rgba(31,50,29,.1); }
 .admin-gallery-card img { display:block; width:100%; aspect-ratio:4/3; object-fit:cover; }

@@ -3,7 +3,7 @@ import { resolve, sep } from "node:path";
 import { randomUUID } from "node:crypto";
 
 const MAX_IMAGES = 12;
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const formats = {
   "image/jpeg": { extension: "jpg", matches: (bytes) => bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff },
   "image/png": { extension: "png", matches: (bytes) => [0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a].every((value, index) => bytes[index] === value) },
@@ -30,7 +30,7 @@ export function createGalleryService(repository, uploadDirectory) {
       const prepared = [];
       for (const file of files) {
         if (!(file instanceof File)) throw new GalleryValidationError("File upload tidak valid");
-        if (file.size < 1 || file.size > MAX_FILE_SIZE) throw new GalleryValidationError("Ukuran setiap gambar maksimal 5 MB");
+        if (file.size < 1 || file.size > MAX_FILE_SIZE) throw new GalleryValidationError("Ukuran setiap gambar maksimal 10 MB");
         const format = formats[file.type];
         if (!format) throw new GalleryValidationError("Format gambar harus JPEG, PNG, atau WebP");
         const bytes = new Uint8Array(await file.arrayBuffer());

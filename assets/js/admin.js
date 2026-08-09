@@ -9,15 +9,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     let galleryImages = [];
 
     async function requestJson(url, options) {
-        const response = await fetch(url, options);
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(result.error || 'Terjadi kesalahan. Silakan coba lagi.');
+        let response;
+        try {
+            response = await fetch(url, options);
+        } catch {
+            throw new Error('Tidak dapat terhubung ke server. Periksa koneksi lalu coba lagi.');
+        }
+        const responseText = await response.text();
+        let result = {};
+        try { result = responseText ? JSON.parse(responseText) : {}; } catch {}
+        if (!response.ok) throw new Error(result.error || `Server menolak permintaan (HTTP ${response.status}).`);
         return result;
     }
 
     function showDashboard() {
         loginView.hidden = true;
         dashboardView.hidden = false;
+        setTimeout(() => activateTab(location.hash.slice(1) || 'generator'), 0);
+    }
+
+    async function activateTab(tabName) {
+        const selected = document.querySelector(`.tab-button[data-tab="${tabName}"]`) || document.querySelector('.tab-button[data-tab="generator"]');
+        document.querySelectorAll('.tab-button').forEach((item) => item.classList.toggle('active', item === selected));
+        document.querySelectorAll('.tab-panel').forEach((panel) => { panel.hidden = panel.id !== `tab-${selected.dataset.tab}`; });
+        if (selected.dataset.tab === 'settings' && !settingsLoaded) await loadSettings();
+        if (selected.dataset.tab === 'gallery' && !galleryLoaded) await loadGallery();
     }
 
     try {
@@ -48,14 +64,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.querySelectorAll('.tab-button').forEach((button) => button.addEventListener('click', async () => {
-        document.querySelectorAll('.tab-button').forEach((item) => item.classList.toggle('active', item === button));
-        document.querySelectorAll('.tab-panel').forEach((panel) => { panel.hidden = panel.id !== `tab-${button.dataset.tab}`; });
-        if (button.dataset.tab === 'settings' && !settingsLoaded) {
-            await loadSettings();
-        }
-        if (button.dataset.tab === 'gallery' && !galleryLoaded) {
-            await loadGallery();
-        }
+        history.replaceState(null, '', `#${button.dataset.tab}`);
+        await activateTab(button.dataset.tab);
     }));
 
     const linkForm = document.getElementById('link-form');
@@ -119,6 +129,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         const button = document.getElementById('gallery-upload-button');
         const files = [...galleryFiles.files];
         if (!files.length) return;
+        const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+        const invalidType = files.find((file) => !allowedTypes.has(file.type));
+        const oversized = files.find((file) => file.size > 10 * 1024 * 1024);
+        if (galleryImages.length + files.length > 12) {
+            galleryFeedback.textContent = `Sisa slot hanya ${12 - galleryImages.length} gambar.`;
+            galleryFeedback.className = 'feedback error';
+            return;
+        }
+        if (invalidType) {
+            galleryFeedback.textContent = `${invalidType.name}: format harus JPEG, PNG, atau WebP.`;
+            galleryFeedback.className = 'feedback error';
+            return;
+        }
+        if (oversized) {
+            galleryFeedback.textContent = `${oversized.name}: ukuran ${(oversized.size / 1024 / 1024).toFixed(1)} MB, maksimal 10 MB.`;
+            galleryFeedback.className = 'feedback error';
+            return;
+        }
         const formData = new FormData();
         files.forEach((file) => formData.append('images', file));
         button.disabled = true;

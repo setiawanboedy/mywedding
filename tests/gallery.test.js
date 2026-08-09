@@ -45,6 +45,14 @@ describe("gallery service", () => {
     await expect(gallery.upload([jpeg("extra.jpg")])).rejects.toThrow("maksimal 12 gambar");
   });
 
+  test("menerima gambar lebih dari 5 MB selama tidak melebihi 10 MB", async () => {
+    const gallery = setup();
+    const bytes = new Uint8Array(6 * 1024 * 1024);
+    bytes.set([0xff, 0xd8, 0xff]);
+    await gallery.upload([new File([bytes], "large.jpg", { type: "image/jpeg" })]);
+    expect(gallery.list()).toHaveLength(1);
+  });
+
   test("metadata dan file bertahan setelah database dibuka ulang", async () => {
     let gallery = setup();
     await gallery.upload([jpeg()]);
