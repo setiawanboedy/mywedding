@@ -254,6 +254,14 @@ function applyConfig(config) {
     document.getElementById('page-description').content = `Undangan Pernikahan Digital ${coupleNames}`;
     document.querySelectorAll('[data-couple-names]').forEach((node) => { node.textContent = coupleNames; });
 
+    const groomInitial = (groom.shortName || groom.name || 'B').trim().charAt(0).toUpperCase();
+    const brideInitial = (bride.shortName || bride.name || 'W').trim().charAt(0).toUpperCase();
+    const initials = `${groomInitial} & ${brideInitial}`;
+    document.querySelectorAll('[data-groom-initial]').forEach((node) => { node.textContent = groomInitial; });
+    document.querySelectorAll('[data-bride-initial]').forEach((node) => { node.textContent = brideInitial; });
+    document.querySelectorAll('[data-couple-initials]').forEach((node) => { node.textContent = initials; });
+    document.querySelectorAll('[data-cover-full-names]').forEach((node) => { node.textContent = `Undangan Pernikahan ${coupleNames}`; });
+
     setText('groom-name', groom.name);
     setText('bride-name', bride.name);
     setInstagram('groom-instagram', groom);
