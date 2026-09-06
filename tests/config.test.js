@@ -17,8 +17,20 @@ describe("settings validation", () => {
   test("membentuk konfigurasi publik yang bersih", () => {
     const settings = validateSettings(validSettings());
     expect(settings.couple.groom.shortName).toBe("Budi");
+    expect(settings.couple.groom.fatherName).toBe("Montague");
     expect(settings.events).toHaveLength(2);
     expect(settings.accounts[1].number).toBe("0987654321");
+  });
+
+  test("mempertahankan nilai bawaan orang tua untuk data lama", () => {
+    const settings = validSettings();
+    delete settings.couple.groom.childDescription;
+    delete settings.couple.groom.fatherName;
+    delete settings.couple.groom.motherName;
+    const validated = validateSettings(settings);
+    expect(validated.couple.groom.childDescription).toBe("Putra Pertama");
+    expect(validated.couple.groom.fatherName).toBe("Montague");
+    expect(validated.couple.groom.motherName).toBe("Lady Montague");
   });
 
   test("menolak countdown tanpa zona waktu", () => {

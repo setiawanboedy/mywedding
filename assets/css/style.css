@@ -349,6 +349,35 @@ a {
   box-shadow: 0 12px 26px rgba(141, 98, 37, 0.28);
 }
 
+#btn-open {
+  min-width: 168px;
+  border: 1px solid rgba(215, 187, 119, 0.9);
+  border-radius: 8px;
+  color: #fffdf4;
+  background: #344b2d;
+  box-shadow: 0 7px 16px rgba(18, 32, 16, 0.22);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.045em;
+}
+
+#btn-open:hover {
+  background: #2b4026;
+  box-shadow: 0 9px 18px rgba(18, 32, 16, 0.26);
+}
+
+#btn-open:active {
+  transform: translateY(0);
+  background: #243820;
+  box-shadow: 0 4px 10px rgba(18, 32, 16, 0.22);
+}
+
+#btn-open:focus-visible {
+  outline: 2px solid #ead69d;
+  outline-offset: 3px;
+}
+
 .btn-secondary,
 .btn-copy {
   color: var(--leaf-950);

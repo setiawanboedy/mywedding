@@ -7,8 +7,8 @@ const httpUrlFields = [
 
 export const DEFAULT_SETTINGS = {
   couple: {
-    groom: { name: "Budi Setiawan", shortName: "Budi", instagram: { handle: "@budisetiawan.gg", url: "https://instagram.com/budisetiawan.gg" } },
-    bride: { name: "Widia Hasmiati", shortName: "Widia", instagram: { handle: "@widia_hsm", url: "https://instagram.com/widia_hsm" } }
+    groom: { name: "Budi Setiawan", shortName: "Budi", childDescription: "Putra Pertama", fatherName: "Montague", motherName: "Lady Montague", instagram: { handle: "@budisetiawan.gg", url: "https://instagram.com/budisetiawan.gg" } },
+    bride: { name: "Widia Hasmiati", shortName: "Widia", childDescription: "Putri Kedua", fatherName: "Capulet", motherName: "Lady Capulet", instagram: { handle: "@widia_hsm", url: "https://instagram.com/widia_hsm" } }
   },
   wedding: { countdownTarget: "2026-12-31T09:00:00+07:00" },
   events: [
@@ -56,6 +56,9 @@ export function validateSettings(input) {
       groom: {
         name: cleanText(input?.couple?.groom?.name, "Nama lengkap laki-laki", 100),
         shortName: cleanText(input?.couple?.groom?.shortName, "Nama pendek laki-laki", 50),
+        childDescription: cleanText(input?.couple?.groom?.childDescription ?? DEFAULT_SETTINGS.couple.groom.childDescription, "Keterangan anak laki-laki", 100),
+        fatherName: cleanText(input?.couple?.groom?.fatherName ?? DEFAULT_SETTINGS.couple.groom.fatherName, "Nama ayah mempelai laki-laki", 100),
+        motherName: cleanText(input?.couple?.groom?.motherName ?? DEFAULT_SETTINGS.couple.groom.motherName, "Nama ibu mempelai laki-laki", 100),
         instagram: {
           handle: cleanText(input?.couple?.groom?.instagram?.handle, "Instagram laki-laki", 100),
           url: input?.couple?.groom?.instagram?.url
@@ -64,6 +67,9 @@ export function validateSettings(input) {
       bride: {
         name: cleanText(input?.couple?.bride?.name, "Nama lengkap perempuan", 100),
         shortName: cleanText(input?.couple?.bride?.shortName, "Nama pendek perempuan", 50),
+        childDescription: cleanText(input?.couple?.bride?.childDescription ?? DEFAULT_SETTINGS.couple.bride.childDescription, "Keterangan anak perempuan", 100),
+        fatherName: cleanText(input?.couple?.bride?.fatherName ?? DEFAULT_SETTINGS.couple.bride.fatherName, "Nama ayah mempelai perempuan", 100),
+        motherName: cleanText(input?.couple?.bride?.motherName ?? DEFAULT_SETTINGS.couple.bride.motherName, "Nama ibu mempelai perempuan", 100),
         instagram: {
           handle: cleanText(input?.couple?.bride?.instagram?.handle, "Instagram perempuan", 100),
           url: input?.couple?.bride?.instagram?.url

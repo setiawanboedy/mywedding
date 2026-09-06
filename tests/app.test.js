@@ -68,11 +68,18 @@ describe("admin API", () => {
     const data = await settingsResponse.json();
     expect(data.settings.couple.groom.shortName).toBe("Budi");
     data.settings.couple.groom.shortName = "Bud";
+    data.settings.couple.groom.childDescription = "Putra Kedua";
+    data.settings.couple.groom.fatherName = "Ayah Baru";
+    data.settings.couple.groom.motherName = "Ibu Baru";
     const update = await app.handle(new Request("http://localhost/api/admin/settings", {
       method: "PUT", headers: { "Content-Type": "application/json", Cookie: cookie }, body: JSON.stringify(data.settings)
     }));
     expect(update.status).toBe(200);
     const publicConfig = await app.handle(new Request("http://localhost/api/config"));
-    expect((await publicConfig.json()).couple.groom.shortName).toBe("Bud");
+    const updatedConfig = await publicConfig.json();
+    expect(updatedConfig.couple.groom.shortName).toBe("Bud");
+    expect(updatedConfig.couple.groom.childDescription).toBe("Putra Kedua");
+    expect(updatedConfig.couple.groom.fatherName).toBe("Ayah Baru");
+    expect(updatedConfig.couple.groom.motherName).toBe("Ibu Baru");
   });
 });

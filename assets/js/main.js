@@ -264,6 +264,12 @@ function applyConfig(config) {
 
     setText('groom-name', groom.name);
     setText('bride-name', bride.name);
+    setText('groom-child-description', groom.childDescription || 'Putra Pertama');
+    setText('groom-father-name', groom.fatherName || 'Montague');
+    setText('groom-mother-name', groom.motherName || 'Lady Montague');
+    setText('bride-child-description', bride.childDescription || 'Putri Kedua');
+    setText('bride-father-name', bride.fatherName || 'Capulet');
+    setText('bride-mother-name', bride.motherName || 'Lady Capulet');
     setInstagram('groom-instagram', groom);
     setInstagram('bride-instagram', bride);
     document.getElementById('groom-portrait').alt = groom.name;

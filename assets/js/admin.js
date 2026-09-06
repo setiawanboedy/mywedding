@@ -259,8 +259,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     function field(name) { return settingsForm.elements.namedItem(name); }
     function fillSettings(data) {
         const values = {
-            groomName:data.couple.groom.name, groomShortName:data.couple.groom.shortName, groomInstagramHandle:data.couple.groom.instagram.handle, groomInstagramUrl:data.couple.groom.instagram.url,
-            brideName:data.couple.bride.name, brideShortName:data.couple.bride.shortName, brideInstagramHandle:data.couple.bride.instagram.handle, brideInstagramUrl:data.couple.bride.instagram.url,
+            groomName:data.couple.groom.name, groomShortName:data.couple.groom.shortName, groomChildDescription:data.couple.groom.childDescription || 'Putra Pertama', groomFatherName:data.couple.groom.fatherName || 'Montague', groomMotherName:data.couple.groom.motherName || 'Lady Montague', groomInstagramHandle:data.couple.groom.instagram.handle, groomInstagramUrl:data.couple.groom.instagram.url,
+            brideName:data.couple.bride.name, brideShortName:data.couple.bride.shortName, brideChildDescription:data.couple.bride.childDescription || 'Putri Kedua', brideFatherName:data.couple.bride.fatherName || 'Capulet', brideMotherName:data.couple.bride.motherName || 'Lady Capulet', brideInstagramHandle:data.couple.bride.instagram.handle, brideInstagramUrl:data.couple.bride.instagram.url,
             countdownTarget:data.wedding.countdownTarget.slice(0,16), akadDate:data.events[0].date, akadTime:data.events[0].time, akadVenue:data.events[0].venue, akadAddress:data.events[0].address, akadMapUrl:data.events[0].mapUrl,
             receptionDate:data.events[1].date, receptionTime:data.events[1].time, receptionVenue:data.events[1].venue, receptionAddress:data.events[1].address, receptionMapUrl:data.events[1].mapUrl,
             bank1Name:data.accounts[0].bank, bank1Number:data.accounts[0].number, bank1Holder:data.accounts[0].holder, bank2Name:data.accounts[1].bank, bank2Number:data.accounts[1].number, bank2Holder:data.accounts[1].holder
@@ -269,7 +269,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     function readSettings() {
         return {
-            couple:{ groom:{ name:field('groomName').value, shortName:field('groomShortName').value, instagram:{ handle:field('groomInstagramHandle').value, url:field('groomInstagramUrl').value } }, bride:{ name:field('brideName').value, shortName:field('brideShortName').value, instagram:{ handle:field('brideInstagramHandle').value, url:field('brideInstagramUrl').value } } },
+            couple:{ groom:{ name:field('groomName').value, shortName:field('groomShortName').value, childDescription:field('groomChildDescription').value, fatherName:field('groomFatherName').value, motherName:field('groomMotherName').value, instagram:{ handle:field('groomInstagramHandle').value, url:field('groomInstagramUrl').value } }, bride:{ name:field('brideName').value, shortName:field('brideShortName').value, childDescription:field('brideChildDescription').value, fatherName:field('brideFatherName').value, motherName:field('brideMotherName').value, instagram:{ handle:field('brideInstagramHandle').value, url:field('brideInstagramUrl').value } } },
             wedding:{ countdownTarget:`${field('countdownTarget').value}:00+07:00` },
             events:[
                 { type:'Akad Nikah', date:field('akadDate').value, time:field('akadTime').value, venue:field('akadVenue').value, address:field('akadAddress').value, mapUrl:field('akadMapUrl').value },
