@@ -19,6 +19,24 @@ beforeEach(() => {
 afterEach(() => database.close());
 
 describe("public API", () => {
+  test("halaman utama menyediakan metadata preview sosial absolut", async () => {
+    const response = await app.handle(new Request("https://undangan.example/?to=Andi"));
+    const html = await response.text();
+    expect(response.headers.get("content-type")).toContain("text/html");
+    expect(html).toContain('property="og:url" content="https://undangan.example/?to=Andi"');
+    expect(html).toContain('property="og:image" content="https://undangan.example/assets/img/wedding-share.jpg"');
+    expect(html).not.toContain("{{SOCIAL_");
+  });
+
+  test("favicon publik dapat dilayani dari aset yang dilacak", async () => {
+    const svg = await app.handle(new Request("http://localhost/assets/img/favicon.svg?v=2"));
+    const png = await app.handle(new Request("http://localhost/assets/img/favicon-32.png?v=2"));
+    expect(svg.status).toBe(200);
+    expect(svg.headers.get("content-type")).toContain("image/svg+xml");
+    expect(png.status).toBe(200);
+    expect(png.headers.get("content-type")).toContain("image/png");
+  });
+
   test("health dan config dapat dibaca", async () => {
     const health = await app.handle(new Request("http://localhost/api/health"));
     expect(health.status).toBe(200);

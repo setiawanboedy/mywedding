@@ -172,9 +172,15 @@ export function createApp({ settings, wishes, auth, gallery, staticRoot = proces
       set.headers["cache-control"] = "no-store";
       return Bun.file(join(staticRoot, "admin.html"));
     })
-    .get("/", ({ set }) => {
+    .get("/", async ({ request, set }) => {
+      const pageUrl = new URL(request.url);
+      const origin = pageUrl.origin;
+      const html = await Bun.file(join(staticRoot, "index.html")).text();
+      set.headers["content-type"] = "text/html; charset=utf-8";
       set.headers["cache-control"] = "no-store";
-      return Bun.file(join(staticRoot, "index.html"));
+      return html
+        .replaceAll("{{SOCIAL_PAGE_URL}}", pageUrl.href)
+        .replaceAll("{{SOCIAL_IMAGE_URL}}", `${origin}/assets/img/wedding-share.jpg`);
     })
     .onError(({ code, error, set }) => {
       if (code === "NOT_FOUND") {
