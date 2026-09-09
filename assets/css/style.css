@@ -170,7 +170,7 @@ a {
   color: var(--ivory);
   background:
     linear-gradient(rgba(25, 45, 23, 0.52), rgba(25, 45, 23, 0.62)),
-    url("../img/bright/garden-hero-bg-bright.png") center / cover no-repeat;
+    url("../img/bright/garden-hero-bg-bright.webp") center / cover no-repeat;
   transition: transform 1s ease, opacity 1s ease;
 }
 
@@ -799,7 +799,7 @@ a {
 .gift-section {
   background:
     linear-gradient(rgba(248, 250, 233, 0.9), rgba(255, 253, 244, 0.98)),
-    url("../img/bright/floral-divider-bright.png") center top / 320px auto no-repeat;
+    url("../img/bright/floral-divider-bright.webp") center top / 320px auto no-repeat;
 }
 
 .gift-card {

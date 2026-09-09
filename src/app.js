@@ -161,7 +161,11 @@ export function createApp({ settings, wishes, auth, gallery, staticRoot = proces
         set.status = 404;
         return "Not Found";
       }
-      if (/\.(js|css)$/.test(requestedPath)) set.headers["cache-control"] = "no-store";
+      if (/\.(js|css)$/.test(requestedPath)) {
+        set.headers["cache-control"] = "no-store";
+      } else if (/\.(webp|png|jpe?g|svg|opus|ico|woff2?|ttf)$/i.test(requestedPath)) {
+        set.headers["cache-control"] = "public, max-age=2592000, immutable";
+      }
       return file;
     })
     .get("/admin", ({ set }) => {
