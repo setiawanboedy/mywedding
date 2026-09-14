@@ -312,7 +312,7 @@ function renderGallery(images) {
     section.hidden = images.length === 0;
     images.forEach((image, index) => {
         const figure = document.createElement('figure');
-        figure.className = `gallery-item fade-in visible${index === 0 ? ' gallery-wide' : ''}`;
+        figure.className = 'gallery-item fade-in visible';
         const element = document.createElement('img');
         element.src = image.url;
         element.alt = `Foto galeri pernikahan ${index + 1}`;

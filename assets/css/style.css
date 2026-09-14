@@ -790,11 +790,6 @@ a {
   box-shadow: 0 12px 36px rgba(31, 50, 29, 0.14);
 }
 
-.gallery-wide {
-  grid-column: 1 / -1;
-  min-height: 230px;
-}
-
 .gallery-decor {
   display: grid;
   place-items: center;
