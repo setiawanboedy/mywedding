@@ -27,7 +27,13 @@ export function parsePagination(query = {}) {
   return { limit, before };
 }
 
-export function createApp({ settings, wishes, auth, gallery, staticRoot = process.cwd() }) {
+export function validateGuestName(body) {
+  const name = typeof body?.name === "string" ? body.name.trim() : "";
+  if (name.length < 1 || name.length > 100) throw new Error("Nama tamu harus terdiri dari 1-100 karakter");
+  return name;
+}
+
+export function createApp({ settings, wishes, auth, gallery, guestLinks, staticRoot = process.cwd() }) {
   const assetsRoot = resolve(staticRoot, "assets");
 
   function requireAdmin(request, set) {
@@ -90,6 +96,30 @@ export function createApp({ settings, wishes, auth, gallery, staticRoot = proces
         set.status = 422;
         return { error: error.message };
       }
+    })
+    .get("/api/admin/guest-links", ({ request, set }) => {
+      if (!requireAdmin(request, set)) return { error: "Akses ditolak" };
+      return { links: guestLinks.list() };
+    })
+    .post("/api/admin/guest-links", ({ body, request, set }) => {
+      if (!requireAdmin(request, set)) return { error: "Akses ditolak" };
+      try {
+        const link = guestLinks.save(validateGuestName(body));
+        set.status = 201;
+        return { link, links: guestLinks.list() };
+      } catch (error) {
+        set.status = 422;
+        return { error: error.message };
+      }
+    })
+    .delete("/api/admin/guest-links/:id", ({ params, request, set }) => {
+      if (!requireAdmin(request, set)) return { error: "Akses ditolak" };
+      const id = Number(params.id);
+      if (!Number.isInteger(id) || id < 1 || !guestLinks.delete(id)) {
+        set.status = 404;
+        return { error: "Link tamu tidak ditemukan" };
+      }
+      return { links: guestLinks.list() };
     })
     .get("/api/admin/gallery", ({ request, set }) => {
       if (!requireAdmin(request, set)) return { error: "Akses ditolak" };

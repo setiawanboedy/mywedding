@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, loadRuntimeConfig, validateSettings } from "./src/config.js";
-import { openDatabase, createGalleryRepository, createSettingsRepository, createWishRepository } from "./src/database.js";
+import { openDatabase, createGalleryRepository, createGuestLinkRepository, createSettingsRepository, createWishRepository } from "./src/database.js";
 import { createApp } from "./src/app.js";
 import { createSessionAuth } from "./src/auth.js";
 import { createGalleryService } from "./src/gallery.js";
@@ -13,7 +13,8 @@ const app = createApp({
   settings,
   wishes: createWishRepository(database),
   auth: createSessionAuth(config.adminKey),
-  gallery
+  gallery,
+  guestLinks: createGuestLinkRepository(database)
 });
 
 app.listen({ hostname: "0.0.0.0", port: config.port });

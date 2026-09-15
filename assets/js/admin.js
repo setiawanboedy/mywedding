@@ -6,7 +6,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const settingsForm = document.getElementById('settings-form');
     let settingsLoaded = false;
     let galleryLoaded = false;
+    let guestLinksLoaded = false;
     let galleryImages = [];
+    let guestLinks = [];
 
     async function requestJson(url, options) {
         let response;
@@ -32,6 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const selected = document.querySelector(`.tab-button[data-tab="${tabName}"]`) || document.querySelector('.tab-button[data-tab="generator"]');
         document.querySelectorAll('.tab-button').forEach((item) => item.classList.toggle('active', item === selected));
         document.querySelectorAll('.tab-panel').forEach((panel) => { panel.hidden = panel.id !== `tab-${selected.dataset.tab}`; });
+        if (selected.dataset.tab === 'generator' && !guestLinksLoaded) await loadGuestLinks();
         if (selected.dataset.tab === 'settings' && !settingsLoaded) await loadSettings();
         if (selected.dataset.tab === 'gallery' && !galleryLoaded) await loadGallery();
     }
@@ -73,34 +76,158 @@ document.addEventListener('DOMContentLoaded', async () => {
     const copyLink = document.getElementById('copy-link');
     const previewLink = document.getElementById('preview-link');
     const linkFeedback = document.getElementById('link-feedback');
-    linkForm.addEventListener('submit', (event) => {
+    const savedLinksList = document.getElementById('saved-links-list');
+    const savedLinksEmpty = document.getElementById('saved-links-empty');
+    const savedLinksCount = document.getElementById('saved-links-count');
+
+    function invitationUrl(name) {
+        const url = new URL('/', window.location.origin);
+        url.searchParams.set('to', name);
+        return url.toString();
+    }
+
+    function showGeneratedLink(name) {
+        const url = invitationUrl(name);
+        generatedLink.value = url;
+        copyLink.disabled = false;
+        previewLink.href = url;
+        previewLink.classList.remove('disabled');
+    }
+
+    async function copyText(value) {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(value);
+            return;
+        }
+        const temporary = document.createElement('textarea');
+        temporary.value = value;
+        temporary.style.position = 'fixed';
+        temporary.style.opacity = '0';
+        document.body.append(temporary);
+        temporary.select();
+        document.execCommand('copy');
+        temporary.remove();
+    }
+
+    async function loadGuestLinks() {
+        try {
+            const result = await requestJson('/api/admin/guest-links');
+            guestLinks = result.links;
+            guestLinksLoaded = true;
+            renderGuestLinks();
+        } catch (error) {
+            linkFeedback.textContent = error.message;
+            linkFeedback.className = 'feedback error';
+        }
+    }
+
+    function renderGuestLinks() {
+        savedLinksList.replaceChildren();
+        savedLinksEmpty.hidden = guestLinks.length > 0;
+        savedLinksCount.textContent = `${guestLinks.length} link`;
+        guestLinks.forEach((link) => {
+            const url = invitationUrl(link.name);
+            const card = document.createElement('article');
+            card.className = 'saved-link-card';
+            const details = document.createElement('div');
+            const name = document.createElement('p');
+            name.className = 'saved-link-name';
+            name.textContent = link.name;
+            const address = document.createElement('span');
+            address.className = 'saved-link-url';
+            address.textContent = url;
+            details.append(name, address);
+            const actions = document.createElement('div');
+            actions.className = 'saved-link-actions';
+            const copy = document.createElement('button');
+            copy.type = 'button';
+            copy.className = 'button-muted copy-saved-link';
+            copy.dataset.linkId = link.id;
+            copy.textContent = 'Salin';
+            const open = document.createElement('a');
+            open.className = 'button-link';
+            open.href = url;
+            open.target = '_blank';
+            open.rel = 'noopener noreferrer';
+            open.textContent = 'Buka';
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'delete-saved-link';
+            remove.dataset.linkId = link.id;
+            remove.textContent = 'Hapus';
+            actions.append(copy, open, remove);
+            card.append(details, actions);
+            savedLinksList.append(card);
+        });
+    }
+
+    linkForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const name = document.getElementById('link-guest-name').value.trim();
         if (!name || name.length > 100) return;
-        const url = new URL('/', window.location.origin);
-        url.searchParams.set('to', name);
-        generatedLink.value = url.toString();
-        copyLink.disabled = false;
-        previewLink.href = url.toString();
-        previewLink.classList.remove('disabled');
-        linkFeedback.textContent = 'Link siap digunakan.';
-        linkFeedback.className = 'feedback success';
+        const submitButton = linkForm.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        linkFeedback.textContent = 'Menyimpan link...';
+        try {
+            const result = await requestJson('/api/admin/guest-links', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            guestLinks = result.links;
+            guestLinksLoaded = true;
+            showGeneratedLink(result.link.name);
+            renderGuestLinks();
+            linkFeedback.textContent = 'Link berhasil dibuat dan disimpan.';
+            linkFeedback.className = 'feedback success';
+        } catch (error) {
+            linkFeedback.textContent = error.message;
+            linkFeedback.className = 'feedback error';
+        } finally {
+            submitButton.disabled = false;
+        }
     });
     linkForm.addEventListener('reset', () => setTimeout(() => {
         copyLink.disabled = true; previewLink.href = '#'; previewLink.classList.add('disabled'); linkFeedback.textContent = '';
     }));
     copyLink.addEventListener('click', async () => {
         try {
-            if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(generatedLink.value);
-            } else {
-                generatedLink.select();
-                document.execCommand('copy');
-            }
+            await copyText(generatedLink.value);
             linkFeedback.textContent = 'Link berhasil disalin.';
             linkFeedback.className = 'feedback success';
         } catch {
             linkFeedback.textContent = 'Link gagal disalin. Silakan salin secara manual.';
+            linkFeedback.className = 'feedback error';
+        }
+    });
+
+    savedLinksList.addEventListener('click', async (event) => {
+        const button = event.target.closest('button[data-link-id]');
+        if (!button) return;
+        const id = Number(button.dataset.linkId);
+        const link = guestLinks.find((item) => item.id === id);
+        if (!link) return;
+        if (button.classList.contains('copy-saved-link')) {
+            try {
+                await copyText(invitationUrl(link.name));
+                linkFeedback.textContent = `Link untuk ${link.name} berhasil disalin.`;
+                linkFeedback.className = 'feedback success';
+            } catch {
+                linkFeedback.textContent = 'Link gagal disalin.';
+                linkFeedback.className = 'feedback error';
+            }
+            return;
+        }
+        if (!confirm(`Hapus link untuk ${link.name}?`)) return;
+        button.disabled = true;
+        try {
+            const result = await requestJson(`/api/admin/guest-links/${id}`, { method: 'DELETE' });
+            guestLinks = result.links;
+            renderGuestLinks();
+            linkFeedback.textContent = 'Link tersimpan berhasil dihapus.';
+            linkFeedback.className = 'feedback success';
+        } catch (error) {
+            button.disabled = false;
+            linkFeedback.textContent = error.message;
             linkFeedback.className = 'feedback error';
         }
     });

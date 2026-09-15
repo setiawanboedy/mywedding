@@ -32,7 +32,36 @@ export function openDatabase(path) {
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
     )
   `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS guest_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    )
+  `);
   return database;
+}
+
+export function createGuestLinkRepository(database) {
+  const listStatement = database.query(`
+    SELECT id, name, created_at AS createdAt, updated_at AS updatedAt
+    FROM guest_links ORDER BY updated_at DESC, id DESC
+  `);
+  const saveStatement = database.query(`
+    INSERT INTO guest_links (name) VALUES ($name)
+    ON CONFLICT(name) DO UPDATE SET
+      name = excluded.name,
+      updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    RETURNING id, name, created_at AS createdAt, updated_at AS updatedAt
+  `);
+  const deleteStatement = database.query("DELETE FROM guest_links WHERE id = $id RETURNING id");
+
+  return {
+    list: () => listStatement.all(),
+    save: (name) => saveStatement.get({ name }),
+    delete: (id) => Boolean(deleteStatement.get({ id }))
+  };
 }
 
 export function createGalleryRepository(database) {

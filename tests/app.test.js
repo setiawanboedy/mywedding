@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createApp } from "../src/app.js";
 import { createSessionAuth } from "../src/auth.js";
-import { createSettingsRepository, createWishRepository, openDatabase } from "../src/database.js";
+import { createGuestLinkRepository, createSettingsRepository, createWishRepository, openDatabase } from "../src/database.js";
 import { validSettings } from "./helpers.js";
 
 let database;
@@ -12,7 +12,8 @@ beforeEach(() => {
   app = createApp({
     settings: createSettingsRepository(database, validSettings()),
     wishes: createWishRepository(database),
-    auth: createSessionAuth("test-admin-key-123456")
+    auth: createSessionAuth("test-admin-key-123456"),
+    guestLinks: createGuestLinkRepository(database)
   });
 });
 
@@ -99,5 +100,40 @@ describe("admin API", () => {
     expect(updatedConfig.couple.groom.childDescription).toBe("Putra Kedua");
     expect(updatedConfig.couple.groom.fatherName).toBe("Ayah Baru");
     expect(updatedConfig.couple.groom.motherName).toBe("Ibu Baru");
+  });
+
+  test("menyimpan, membaca, dan menghapus link tamu", async () => {
+    const login = await app.handle(new Request("http://localhost/api/admin/login", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: "test-admin-key-123456" })
+    }));
+    const cookie = login.headers.get("set-cookie").split(";")[0];
+    const headers = { "Content-Type": "application/json", Cookie: cookie };
+    const created = await app.handle(new Request("http://localhost/api/admin/guest-links", {
+      method: "POST", headers, body: JSON.stringify({ name: "Bapak Andi & Keluarga" })
+    }));
+    expect(created.status).toBe(201);
+    const createdData = await created.json();
+    expect(createdData.links).toHaveLength(1);
+    expect(createdData.link.name).toBe("Bapak Andi & Keluarga");
+
+    const list = await app.handle(new Request("http://localhost/api/admin/guest-links", { headers: { Cookie: cookie } }));
+    expect((await list.json()).links).toHaveLength(1);
+    const removed = await app.handle(new Request(`http://localhost/api/admin/guest-links/${createdData.link.id}`, {
+      method: "DELETE", headers: { Cookie: cookie }
+    }));
+    expect((await removed.json()).links).toEqual([]);
+  });
+
+  test("menolak link tamu tanpa sesi dan nama kosong", async () => {
+    const unauthorized = await app.handle(new Request("http://localhost/api/admin/guest-links"));
+    expect(unauthorized.status).toBe(401);
+    const login = await app.handle(new Request("http://localhost/api/admin/login", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: "test-admin-key-123456" })
+    }));
+    const cookie = login.headers.get("set-cookie").split(";")[0];
+    const invalid = await app.handle(new Request("http://localhost/api/admin/guest-links", {
+      method: "POST", headers: { "Content-Type": "application/json", Cookie: cookie }, body: JSON.stringify({ name: "   " })
+    }));
+    expect(invalid.status).toBe(422);
   });
 });

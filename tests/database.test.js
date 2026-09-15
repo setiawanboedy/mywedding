@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { createSettingsRepository, createWishRepository, openDatabase } from "../src/database.js";
+import { createGuestLinkRepository, createSettingsRepository, createWishRepository, openDatabase } from "../src/database.js";
 import { validSettings } from "./helpers.js";
 
 let database;
@@ -42,5 +42,19 @@ describe("settings repository", () => {
     repository.update(changed);
     createSettingsRepository(database, validSettings());
     expect(repository.get().settings.couple.groom.shortName).toBe("Bud");
+  });
+});
+
+describe("guest link repository", () => {
+  test("menyimpan nama secara unik dan menghapus link", () => {
+    database = openDatabase(":memory:");
+    const repository = createGuestLinkRepository(database);
+    const first = repository.save("Bapak Andi");
+    const updated = repository.save("bapak andi");
+    expect(updated.id).toBe(first.id);
+    expect(repository.list()).toHaveLength(1);
+    expect(repository.list()[0].name).toBe("bapak andi");
+    expect(repository.delete(first.id)).toBe(true);
+    expect(repository.list()).toEqual([]);
   });
 });
