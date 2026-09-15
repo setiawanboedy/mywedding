@@ -778,16 +778,18 @@ a {
 .gallery-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  width: min(100%, 340px);
+  margin-inline: auto;
+  gap: 4px;
 }
 
 .gallery-item {
-  min-height: 170px;
+  aspect-ratio: 1;
   margin: 0;
-  border-radius: 16px;
+  border-radius: 8px;
   overflow: hidden;
   background: #dfe8c1;
-  box-shadow: 0 12px 36px rgba(31, 50, 29, 0.14);
+  box-shadow: none;
 }
 
 .gallery-decor {
