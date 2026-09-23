@@ -5,11 +5,16 @@ import { validRuntimeEnv, validSettings } from "./helpers.js";
 describe("runtime config", () => {
   test("hanya membaca konfigurasi infrastruktur dan key", () => {
     const config = loadRuntimeConfig(validRuntimeEnv);
-    expect(config).toEqual({ port: 3000, databasePath: ":memory:", adminKey: "test-admin-key-123456" });
+    expect(config).toEqual({ port: 3000, databasePath: ":memory:", adminKey: "test-admin-key-123456", storageEnabled: true });
   });
 
   test("menolak key admin yang lemah", () => {
     expect(() => loadRuntimeConfig({ ...validRuntimeEnv, ADMIN_KEY: "pendek" })).toThrow("minimal 12 karakter");
+  });
+
+  test("membaca flag penyimpanan secara ketat", () => {
+    expect(loadRuntimeConfig({ ...validRuntimeEnv, STORAGE_ENABLED: "false" }).storageEnabled).toBe(false);
+    expect(() => loadRuntimeConfig({ ...validRuntimeEnv, STORAGE_ENABLED: "off" })).toThrow("true atau false");
   });
 });
 

@@ -137,3 +137,24 @@ describe("admin API", () => {
     expect(invalid.status).toBe(422);
   });
 });
+
+describe("storage flag", () => {
+  test("menolak operasi tulis ketika penyimpanan dinonaktifkan", async () => {
+    const disabledApp = createApp({
+      settings: createSettingsRepository(database, validSettings()),
+      wishes: createWishRepository(database),
+      auth: createSessionAuth("test-admin-key-123456"),
+      guestLinks: createGuestLinkRepository(database),
+      gallery: { list: async () => [], getFile: async () => null },
+      storageEnabled: false
+    });
+    const response = await disabledApp.handle(new Request("http://localhost/api/wishes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Andi", attendance: "HADIR", message: "Selamat!" })
+    }));
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "Penyimpanan dinonaktifkan" });
+    expect((await disabledApp.handle(new Request("http://localhost/api/config"))).status).toBe(200);
+  });
+});

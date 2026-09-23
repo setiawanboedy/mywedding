@@ -4,15 +4,15 @@ services:
     env_file:
       - .env
     environment:
-      APP_PORT: 3000
+      APP_PORT: ${APP_PORT:-3050}
       DATABASE_PATH: /app/data/undangan.sqlite
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${APP_PORT:-3050}:${APP_PORT:-3050}"
     volumes:
       - invitation-data:/app/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "bun", "-e", "const r = await fetch('http://127.0.0.1:3000/api/health'); if (!r.ok) process.exit(1)"]
+      test: ["CMD", "bun", "-e", "const r = await fetch('http://127.0.0.1:3050/api/health'); if (!r.ok) process.exit(1)"]
       interval: 10s
       timeout: 3s
       retries: 5

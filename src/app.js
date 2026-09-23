@@ -33,7 +33,7 @@ export function validateGuestName(body) {
   return name;
 }
 
-export function createApp({ settings, wishes, auth, gallery, guestLinks, staticRoot = process.cwd() }) {
+export function createApp({ settings, wishes, auth, gallery, guestLinks, storageEnabled = true, staticRoot = process.cwd() }) {
   const assetsRoot = resolve(staticRoot, "assets");
 
   function requireAdmin(request, set) {
@@ -42,21 +42,28 @@ export function createApp({ settings, wishes, auth, gallery, guestLinks, staticR
     return false;
   }
 
+  function requireStorage(set) {
+    if (storageEnabled) return true;
+    set.status = 503;
+    return false;
+  }
+
   return new Elysia()
     .get("/api/health", () => ({ status: "ok" }))
-    .get("/api/config", () => settings.get().settings)
-    .get("/api/gallery", () => ({ images: gallery.list() }))
-    .get("/api/wishes", ({ query, set }) => {
+    .get("/api/config", async () => (await settings.get()).settings)
+    .get("/api/gallery", async () => ({ images: await gallery.list() }))
+    .get("/api/wishes", async ({ query, set }) => {
       try {
-        return wishes.list(parsePagination(query));
+        return await wishes.list(parsePagination(query));
       } catch (error) {
         set.status = 422;
         return { error: error.message };
       }
     })
-    .post("/api/wishes", ({ body, set }) => {
+    .post("/api/wishes", async ({ body, set }) => {
+      if (!requireStorage(set)) return { error: "Penyimpanan dinonaktifkan" };
       try {
-        const wish = wishes.create(validateWish(body));
+        const wish = await wishes.create(validateWish(body));
         set.status = 201;
         return { wish };
       } catch (error) {
@@ -84,49 +91,53 @@ export function createApp({ settings, wishes, auth, gallery, guestLinks, staticR
       set.headers["set-cookie"] = auth.clearCookie(request);
       return { authenticated: false };
     })
-    .get("/api/admin/settings", ({ request, set }) => {
+    .get("/api/admin/settings", async ({ request, set }) => {
       if (!requireAdmin(request, set)) return { error: "Akses ditolak" };
       return settings.get();
     })
-    .put("/api/admin/settings", ({ body, request, set }) => {
+    .put("/api/admin/settings", async ({ body, request, set }) => {
       if (!requireAdmin(request, set)) return { error: "Akses ditolak" };
+      if (!requireStorage(set)) return { error: "Penyimpanan dinonaktifkan" };
       try {
-        return settings.update(validateSettings(body));
+        return await settings.update(validateSettings(body));
       } catch (error) {
         set.status = 422;
         return { error: error.message };
       }
     })
-    .get("/api/admin/guest-links", ({ request, set }) => {
+    .get("/api/admin/guest-links", async ({ request, set }) => {
       if (!requireAdmin(request, set)) return { error: "Akses ditolak" };
-      return { links: guestLinks.list() };
+      return { links: await guestLinks.list() };
     })
-    .post("/api/admin/guest-links", ({ body, request, set }) => {
+    .post("/api/admin/guest-links", async ({ body, request, set }) => {
       if (!requireAdmin(request, set)) return { error: "Akses ditolak" };
+      if (!requireStorage(set)) return { error: "Penyimpanan dinonaktifkan" };
       try {
-        const link = guestLinks.save(validateGuestName(body));
+        const link = await guestLinks.save(validateGuestName(body));
         set.status = 201;
-        return { link, links: guestLinks.list() };
+        return { link, links: await guestLinks.list() };
       } catch (error) {
         set.status = 422;
         return { error: error.message };
       }
     })
-    .delete("/api/admin/guest-links/:id", ({ params, request, set }) => {
+    .delete("/api/admin/guest-links/:id", async ({ params, request, set }) => {
       if (!requireAdmin(request, set)) return { error: "Akses ditolak" };
+      if (!requireStorage(set)) return { error: "Penyimpanan dinonaktifkan" };
       const id = Number(params.id);
-      if (!Number.isInteger(id) || id < 1 || !guestLinks.delete(id)) {
+      if (!Number.isInteger(id) || id < 1 || !(await guestLinks.delete(id))) {
         set.status = 404;
         return { error: "Link tamu tidak ditemukan" };
       }
-      return { links: guestLinks.list() };
+      return { links: await guestLinks.list() };
     })
-    .get("/api/admin/gallery", ({ request, set }) => {
+    .get("/api/admin/gallery", async ({ request, set }) => {
       if (!requireAdmin(request, set)) return { error: "Akses ditolak" };
-      return { images: gallery.list() };
+      return { images: await gallery.list() };
     })
     .post("/api/admin/gallery", async ({ request, set }) => {
       if (!requireAdmin(request, set)) return { error: "Akses ditolak" };
+      if (!requireStorage(set)) return { error: "Penyimpanan dinonaktifkan" };
       try {
         const formData = await request.formData();
         const files = formData.getAll("images").filter((value) => value instanceof File);
@@ -143,11 +154,12 @@ export function createApp({ settings, wishes, auth, gallery, guestLinks, staticR
         return { error: "Upload gagal diproses oleh server. Silakan coba lagi atau periksa log server." };
       }
     })
-    .put("/api/admin/gallery/order", ({ body, request, set }) => {
+    .put("/api/admin/gallery/order", async ({ body, request, set }) => {
       if (!requireAdmin(request, set)) return { error: "Akses ditolak" };
+      if (!requireStorage(set)) return { error: "Penyimpanan dinonaktifkan" };
       try {
         const ids = Array.isArray(body?.ids) ? body.ids.map(Number) : [];
-        return { images: gallery.reorder(ids) };
+        return { images: await gallery.reorder(ids) };
       } catch (error) {
         if (error instanceof GalleryValidationError) {
           set.status = 422;
@@ -158,15 +170,16 @@ export function createApp({ settings, wishes, auth, gallery, guestLinks, staticR
     })
     .delete("/api/admin/gallery/:id", async ({ params, request, set }) => {
       if (!requireAdmin(request, set)) return { error: "Akses ditolak" };
+      if (!requireStorage(set)) return { error: "Penyimpanan dinonaktifkan" };
       const id = Number(params.id);
       if (!Number.isInteger(id) || id < 1 || !(await gallery.delete(id))) {
         set.status = 404;
         return { error: "Gambar tidak ditemukan" };
       }
-      return { images: gallery.list() };
+      return { images: await gallery.list() };
     })
-    .get("/uploads/gallery/:filename", ({ params, set }) => {
-      const image = gallery.getFile(params.filename);
+    .get("/uploads/gallery/:filename", async ({ params, set }) => {
+      const image = await gallery.getFile(params.filename);
       if (!image) {
         set.status = 404;
         return "Not Found";

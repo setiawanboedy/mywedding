@@ -108,6 +108,15 @@ export function loadRuntimeConfig(env = process.env) {
   return {
     port,
     databasePath: env.DATABASE_PATH?.trim() || "./data/undangan.sqlite",
-    adminKey
+    adminKey,
+    storageEnabled: isStorageEnabled(env)
   };
+}
+
+export function isStorageEnabled(env = process.env) {
+  const value = env.STORAGE_ENABLED?.trim().toLowerCase();
+  if (value === undefined || value === "") return true;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  throw new Error("STORAGE_ENABLED harus bernilai true atau false");
 }

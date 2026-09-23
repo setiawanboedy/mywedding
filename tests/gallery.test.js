@@ -26,15 +26,15 @@ afterEach(() => {
 describe("gallery service", () => {
   test("upload, reorder, dan hapus gambar", async () => {
     const gallery = setup();
-    expect(gallery.list()).toEqual([]);
+    expect(await gallery.list()).toEqual([]);
     await gallery.upload([jpeg("one.jpg"), jpeg("two.jpg")]);
-    const uploaded = gallery.list();
+    const uploaded = await gallery.list();
     expect(uploaded).toHaveLength(2);
-    expect(gallery.getFile(uploaded[0].url.split("/").at(-1))).not.toBeNull();
-    gallery.reorder([uploaded[1].id, uploaded[0].id]);
-    expect(gallery.list().map(({ id }) => id)).toEqual([uploaded[1].id, uploaded[0].id]);
+    expect(await gallery.getFile(uploaded[0].url.split("/").at(-1))).not.toBeNull();
+    await gallery.reorder([uploaded[1].id, uploaded[0].id]);
+    expect((await gallery.list()).map(({ id }) => id)).toEqual([uploaded[1].id, uploaded[0].id]);
     expect(await gallery.delete(uploaded[1].id)).toBe(true);
-    expect(gallery.list()).toHaveLength(1);
+    expect(await gallery.list()).toHaveLength(1);
   });
 
   test("menolak format palsu dan gambar ke-13", async () => {
@@ -50,7 +50,7 @@ describe("gallery service", () => {
     const bytes = new Uint8Array(6 * 1024 * 1024);
     bytes.set([0xff, 0xd8, 0xff]);
     await gallery.upload([new File([bytes], "large.jpg", { type: "image/jpeg" })]);
-    expect(gallery.list()).toHaveLength(1);
+    expect(await gallery.list()).toHaveLength(1);
   });
 
   test("metadata dan file bertahan setelah database dibuka ulang", async () => {
@@ -59,9 +59,9 @@ describe("gallery service", () => {
     database.close();
     database = openDatabase(join(temporaryDirectory, "gallery.sqlite"));
     gallery = createGalleryService(createGalleryRepository(database), join(temporaryDirectory, "uploads"));
-    const images = gallery.list();
+    const images = await gallery.list();
     expect(images).toHaveLength(1);
-    expect(gallery.getFile(images[0].url.split("/").at(-1))).not.toBeNull();
-    expect(gallery.getFile("../../secret.jpg")).toBeNull();
+    expect(await gallery.getFile(images[0].url.split("/").at(-1))).not.toBeNull();
+    expect(await gallery.getFile("../../secret.jpg")).toBeNull();
   });
 });
